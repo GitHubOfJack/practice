@@ -36,6 +36,26 @@ package com.jack;
  *
  * 查看GC情况
  * -XX:PrintGCDetails
+ *
+ *
+ * javac Test.java   生成Test.class文件
+ *
+ * javap -c Test.class 查看源码
+ * javap -verbose Test.class 查看详细源码
+ *
+ *
+ *
+ *
+ * .class文件组成包含7个部分
+ * 1 魔数与class文件版本
+ * 2 常量池（字面量和符号引用）
+ *      2.1 字面量：文本字符串、申明为final类型的常量值
+ *      2.2 符号引用：1类或接口的全限定名 2方法的名称和描述符 3字段的名称和描述符
+ * 3 访问标志
+ * 4 类索引、父类索引、接口索引
+ * 5 字段表
+ * 6 方法表
+ * 7 属性表
  * */
 public class JpsPractice {
     public static void main(String[] args) throws InterruptedException {
