@@ -26,8 +26,8 @@ public class StringPractice {
         this.c = c;
     }
     public static void main(String[] args) {
-        StringPractice sp = new StringPractice(10);
-        sp.m = 1000;
+        /*StringPractice sp = new StringPractice(10);
+        sp.m = 1000;*/
         String s1 = "aaa";
         String s2 = new String("aaa");
         String s3 = s2.intern();
