@@ -104,9 +104,13 @@ zab协议保证再leader选举过程中，已经被commit的消息不会丢失�
 
 
 
+zk的每个节点称为/znode，由三部分组成：1 state(状态信息：如权限、版本等) 2 data(数据) 3 child(子节点)
+
 ps：zk的心跳连接是master发送到salve的心跳
 
 ​	zk的服务器个数必须是奇数
 
 ​	zk接到数据之后先写本地，进行数据持久化
+
+​	curator-封装的zk操作客户端
 
