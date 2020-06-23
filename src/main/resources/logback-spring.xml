@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<jmxConfigurator />
+	<include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+	<property name="LOG_FILE" value="myspring.log"/>
+
+	<!--添加行号，去除进程号-->
+	<property name="WFW_CONSOLE" value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %line- %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}" />
+	<property name="WFW_FiLE_CONSOLE" value="%d{yyyy-MM-dd HH:mm:ss.SSS} ${LOG_LEVEL_PATTERN:-%5p} --- [%t] %-40.40logger{39} : %line- %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}" />
+
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>${WFW_CONSOLE}</pattern>
+			<charset>utf8</charset>
+		</encoder>
+	</appender>
+
+	<appender name="FILE"  class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<encoder>
+			<pattern>${WFW_FiLE_CONSOLE}</pattern>
+			<charset>utf8</charset>
+		</encoder>
+		<file>${LOG_FILE}</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- 每天做归档整理 -->
+			<fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.gz</fileNamePattern>
+			<!-- 本地保存7天 -->
+			<maxHistory>7</maxHistory>
+		</rollingPolicy>
+	</appender>
+
+	<root level="INFO">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="FILE" />
+	</root>
+
+</configuration>
