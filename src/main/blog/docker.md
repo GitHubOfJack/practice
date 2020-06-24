@@ -33,3 +33,20 @@ Enp2s0f0
 255.255.255.0
 
 192.168.90.255
+
+1  curl -fsSL https://get.docker.com -o get-docker.sh
+2  sudo sh get-docker.sh --mirror Aliyun  使用阿里云镜像安装DOCKER
+3  在/ETC/DOCKER目录创建daemon.json文件，添加如下内容
+{
+	"registry-mirrors": ["https://alzgoonw.mirror.aliyuncs.com"]
+}
+4 执行命令  
+root@ubuntu:~# systemctl daemon-reload
+root@ubuntu:~# systemctl restart docker
+5 使用docker
+ docker pull tomcat[:tag] 
+ docker images
+ docker rmi <image_id>
+ docker run -it --rm -p 8888:8080 tomcat[:tag](第一个端口是在容器中的端口，第二个端口是宿主机的端口)
+ docker ps <-a> 如果没有-a表示查看当前运行的容器，如果有-a表示所有的容器
+ docker rm <容器id>
