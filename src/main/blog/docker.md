@@ -41,8 +41,8 @@ Enp2s0f0
 	"registry-mirrors": ["https://alzgoonw.mirror.aliyuncs.com"]
 }
 4 执行命令  
-root@ubuntu:~# systemctl daemon-reload
-root@ubuntu:~# systemctl restart docker
+ systemctl daemon-reload
+ systemctl restart docker
 5 使用docker
  docker pull tomcat[:tag] 
  docker images
@@ -50,3 +50,7 @@ root@ubuntu:~# systemctl restart docker
  docker run -it --rm -p 8888:8080 tomcat[:tag](第一个端口是在容器中的端口，第二个端口是宿主机的端口)
  docker ps <-a> 如果没有-a表示查看当前运行的容器，如果有-a表示所有的容器
  docker rm <容器id>
+ docker run -it --rm \
+ ununtu:16.04 \
+ bash
+ 
