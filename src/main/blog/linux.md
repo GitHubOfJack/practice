@@ -1,5 +1,8 @@
-1 ls -al
-2 bin:二进制可执行文件（ls,mkdir）
+1 LINUX目录结构
+
+比较重要的是：/home /etc /var /usr/local
+
+  bin:二进制可执行文件（ls,mkdir）
   boot:用于存放系统引导时使用的文件
   dev:用于存放设备文件
   etc:用于存放系统配置文件
@@ -13,3 +16,41 @@
   tmp:存放临时文件
   usr:用户存放系统应用程序，比较重要的目录/usr/local本地管理员软件安装目录
   var:用户存放运行时需要改变数据的文件
+
+3 常用命令
+
+  文件操作命令
+
+  ls -al
+
+  mkdir
+
+  head
+
+  tail
+
+  find
+
+  grep
+
+  free -h
+
+  stat
+
+  du -h
+
+  df -h
+
+  top
+
+ netstat
+
+ iostat 
+
+ chmod 
+
+ chown
+
+ ps
+
+  
