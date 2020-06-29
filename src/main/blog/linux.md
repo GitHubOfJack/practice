@@ -19,38 +19,35 @@
 
 3 常用命令
 
-  文件操作命令
-
+  操作文件目录
   ls -al
-
   mkdir
-
+  touch
+  echo
+  cat
+  cp
+  rm
+  mv
+  find
+  grep
+  ln
+  more
+  less
   head
-
   tail
 
-  find
-
-  grep
-
-  free -h
-
-  stat
-
-  du -h
-
-  df -h
-
+  系统管理命令
+  state
   top
-
+  free -h
+  du -h
+  df -h
  netstat
-
  iostat 
-
  chmod 
-
  chown
-
  ps
+ clear
+ kill
 
   
