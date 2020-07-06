@@ -10,9 +10,15 @@
     默认情况下shutdown端点是不加入上下文的，可以通过management.endpoint.shutdown.enabled=true把端口加入上下文
     management.endpoints.web.exposure.include 开启一批端口，例如:info,health,env,beans等等，如果是*表明开启所有端口
     常用的端口health,info,beans,logfile,env,loggers,metrics,mappings,scheduledtasks,shutdown,threaddump,heapdump
-    /env路径是干啥的
-
-```
-management.endpoints.web.exposure.include=health,info,beans,logfile,env,loggers,metrics,mappings,scheduledtasks,shutdown,threaddump,heapdump
-logging.file.name=myspring.log
-```
+    env:可以获取配置信息   loggers:可以动态修改日志级别
+    修改端点访问路径management.endpoints.web.base-path
+    修改某个端点的访问路径management.endpoints.web.path-mapping.<id>
+    设置访问端点的port:management.server.port,可以与业务端口（server.port）不一致
+    设置访问端点的服务器:management.server.address，必须有management.server.port，management.server.address才会生效
+3 SECURITY
+    pom中新增spring-boot-starter-security依赖，同时增加继承spring-boot-starter-security一个@Configuration对象
+    可以指定端点的访问权限
+    登录名：spring.security.user.name=my
+    登录密码：spring.security.user.password=123
+    登录的角色：spring.security.user.roles=admin
+    
