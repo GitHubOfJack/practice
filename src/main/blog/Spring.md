@@ -204,8 +204,14 @@ public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
 
 ​	AnnotationAwareAspectJAutoProxyCreator extends InstantiationAwareBeanPostProcessor,BeanFactoryAware
 
-   所以在registerBeanPostProcessors的时候会把AnnotationAwareAspectJAutoProxyCreator这个对象放到容器中    
-    
+   所以在registerBeanPostProcessors的时候会把AnnotationAwareAspectJAutoProxyCreator这个对象放到容器中,
+   在创建目标对象时，在后置处理器中通过proxyFactory生成代理对象  CGLIB
+   执行目标方法时
+   List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
+
+```
+new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, methodProxy).proceed()
+```
 
 6 ApplicationContext和BeanFactory的区别
   ApplicationContext extends EnvironmentCapable, MessageSource, ApplicationEventPublisher, ResourceLoader
@@ -223,3 +229,5 @@ public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
 ​	4 责任链模式
 
 ​	5 代理模式
+
+   6 适配器模式

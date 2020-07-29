@@ -18,6 +18,8 @@
 		<java.version>1.8</java.version>
 		<curator.version>5.0.0</curator.version>
 		<lombok.version>1.16.14</lombok.version>
+		<mysql.version>5.1.46</mysql.version>
+		<druid.version>1.1.6</druid.version>
 	</properties>
 
 	<dependencies>
@@ -37,7 +39,18 @@
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jdbc</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-aop</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>${mysql.version}</version>
 		</dependency>
 
 		<dependency>
@@ -76,6 +89,14 @@
 			<version>${lombok.version}</version>
 		</dependency>
 		<!--lombok-->
+
+		<!-- druid -->
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>druid</artifactId>
+			<version>${druid.version}</version>
+		</dependency>
+		<!-- druid -->
 
 	</dependencies>
 

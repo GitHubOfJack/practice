@@ -5,6 +5,8 @@ import com.jack.spring.event.MyApplicationEvent;
 import com.jack.spring.factorybean.PhoneFactoryBean;
 import com.jack.spring.scan.TestA;
 import com.jack.spring.scan.TestB;
+import com.jack.spring.transaction.DataSourceBean;
+import com.jack.spring.transaction.Service;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.xml.XmlBeanFactory;
 import org.springframework.context.ApplicationContext;
@@ -13,6 +15,8 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.transaction.BeforeTransaction;
 
+import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
@@ -49,5 +53,22 @@ public class SpringTest {
 
         Buss buss = (Buss) applicationContext.getBean("buss");
         buss.doBuss();
+
+        Object bean3 = applicationContext.getBean("dataSourceBean");
+        System.out.println(bean3);
+        System.out.println(bean3.getClass());
+        DataSourceBean bean4 = applicationContext.getBean(DataSourceBean.class);
+        System.out.println(bean3 == bean4);
+
+        //Service bean5 = applicationContext.getBean(Service.class);
+        //bean5.doInsert();
+
+        DataSource bean6 = applicationContext.getBean(DataSource.class);
+        System.out.println(bean6);
+        try {
+            System.out.println(bean6.getConnection());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

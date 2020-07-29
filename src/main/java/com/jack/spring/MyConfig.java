@@ -2,7 +2,11 @@ package com.jack.spring;
 
 import com.jack.spring.aop.MyImportBeanDefinitionRegistry;
 import com.jack.spring.factorybean.PhoneFactoryBean;
+import com.jack.spring.transaction.DBConfig;
+import com.jack.spring.transaction.DataSourceBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
  * @author 马钊
@@ -11,7 +15,8 @@ import org.springframework.context.annotation.*;
 @Configuration
 @ComponentScan({"com.jack.spring.scan"})
 @EnableAspectJAutoProxy
-@Import({PhoneFactoryBean.class, MyImportBeanDefinitionRegistry.class})
+@Import({DBConfig.class, PhoneFactoryBean.class, MyImportBeanDefinitionRegistry.class})
+@EnableTransactionManagement
 public class MyConfig {
     @Bean
     public Car createCar() {
