@@ -213,6 +213,19 @@ public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
 new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, methodProxy).proceed()
 ```
 
+
+
+@EnableTransactionManagement
+
+​	->@Import(TransactionManagementConfigurationSelector.class)
+
+​		->AutoProxyRegistrar ProxyTransactionManagementConfiguration
+            AutoProxyRegistrar implements ImportBeanDefinitionRegistrar -> 注册了一个internalAutoProxyCreator=InfrastructureAdvisorAutoProxyCreator
+            ProxyTransactionManagementConfiguration是一个@Configuration -> BeanFactoryTransactionAttributeSourceAdvisor\TransactionAttributeSource\TransactionInterceptor三个bean
+            
+                InfrastructureAdvisorAutoProxyCreator extends InstantiationAwareBeanPostProcessor  作用是把BeanFactoryTransactionAttributeSourceAdvisor\TransactionAttributeSource\TransactionInterceptor三个bean变成增强器
+                    
+
 6 ApplicationContext和BeanFactory的区别
   ApplicationContext extends EnvironmentCapable, MessageSource, ApplicationEventPublisher, ResourceLoader
 
@@ -231,3 +244,13 @@ new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, metho
 ​	5 代理模式
 
    6 适配器模式
+
+8 CGLIIB
+    无法为final方法或者类创建代理，无法为static方法创建代理，无法为private方法创建代理
+    可以使用System.setProperty(DebuggingClassWriter.DEBUG_LOCATION_PROPERTY, "target/cglib");设置CGLIB生成的字节码类生成位置
+    使用步骤
+    1 Enhancer enhancer = new Enhancer();创建一个增强器
+    2 enhancer.setSuperclass(NormalClass.class); 设置它的父类为目标类
+    3 enhancer.setCallback(new MethodInterceptor() {});设置一个方法拦截器，增强方法
+    4 NormalClass normalClass = (NormalClass) enhancer.create(); 创建目标代理类
+    5 normalClass.publicMethod(); 执行代理类的方法
