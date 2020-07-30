@@ -60,8 +60,8 @@ public class SpringTest {
         DataSourceBean bean4 = applicationContext.getBean(DataSourceBean.class);
         System.out.println(bean3 == bean4);
 
-        //Service bean5 = applicationContext.getBean(Service.class);
-        //bean5.doInsert();
+        Service bean5 = applicationContext.getBean(Service.class);
+        bean5.doInsert();
 
         DataSource bean6 = applicationContext.getBean(DataSource.class);
         System.out.println(bean6);
