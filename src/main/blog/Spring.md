@@ -206,7 +206,7 @@ public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
 
    所以在registerBeanPostProcessors的时候会把AnnotationAwareAspectJAutoProxyCreator这个对象放到容器中,
    在创建目标对象时，在后置处理器中通过proxyFactory生成代理对象  CGLIB
-   执行目标方法时
+   执行目标方法时   CglibAopProxy
    List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
 
 ```
@@ -217,14 +217,16 @@ new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, metho
 
 @EnableTransactionManagement
 
-​	->@Import(TransactionManagementConfigurationSelector.class)
+​	->@Import(TransactionManagementConfigurationSelector.class) extends ImportSelector
 
 ​		->AutoProxyRegistrar ProxyTransactionManagementConfiguration
             AutoProxyRegistrar implements ImportBeanDefinitionRegistrar -> 注册了一个internalAutoProxyCreator=InfrastructureAdvisorAutoProxyCreator
             ProxyTransactionManagementConfiguration是一个@Configuration -> BeanFactoryTransactionAttributeSourceAdvisor\TransactionAttributeSource\TransactionInterceptor三个bean
             
                 InfrastructureAdvisorAutoProxyCreator extends InstantiationAwareBeanPostProcessor  作用是把BeanFactoryTransactionAttributeSourceAdvisor这个bean变成增强器
-                    
+             
+             
+            JdkDynamicAopProxy       
 
 6 ApplicationContext和BeanFactory的区别
   ApplicationContext extends EnvironmentCapable, MessageSource, ApplicationEventPublisher, ResourceLoader
