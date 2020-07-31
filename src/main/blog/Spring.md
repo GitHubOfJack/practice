@@ -226,7 +226,11 @@ new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, metho
                 InfrastructureAdvisorAutoProxyCreator extends InstantiationAwareBeanPostProcessor  作用是把BeanFactoryTransactionAttributeSourceAdvisor这个bean变成增强器
              
              
-            JdkDynamicAopProxy  
+            JdkDynamicAopProxy 
+            	List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
+                MethodInvocation invocation = new ReflectiveMethodInvocation(proxy, target, method, args, targetClass, chain);
+                retVal = invocation.proceed();
+             
             CglibAopProxy  
             
             
