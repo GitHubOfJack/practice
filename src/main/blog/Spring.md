@@ -226,7 +226,21 @@ new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, metho
                 InfrastructureAdvisorAutoProxyCreator extends InstantiationAwareBeanPostProcessor  作用是把BeanFactoryTransactionAttributeSourceAdvisor这个bean变成增强器
              
              
-            JdkDynamicAopProxy       
+            JdkDynamicAopProxy  
+            CglibAopProxy  
+            
+            
+            TransactionManager
+             TransactionStatus getTransaction(@Nullable TransactionDefinition definition)
+             void commit(TransactionStatus status)
+             void rollback(TransactionStatus status)
+             
+            AnnotationTransactionAttributeSource
+            TransactionAnnotationParser   TransactionAttribute parseTransactionAnnotation(AnnotatedElement element)
+            TransactionInterceptor   
+            TransactionStatus       savepoint
+            TransactionDefinition   7大传播属性 4种隔离级别
+             
 
 6 ApplicationContext和BeanFactory的区别
   ApplicationContext extends EnvironmentCapable, MessageSource, ApplicationEventPublisher, ResourceLoader
