@@ -223,7 +223,7 @@ new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, metho
             AutoProxyRegistrar implements ImportBeanDefinitionRegistrar -> 注册了一个internalAutoProxyCreator=InfrastructureAdvisorAutoProxyCreator
             ProxyTransactionManagementConfiguration是一个@Configuration -> BeanFactoryTransactionAttributeSourceAdvisor\TransactionAttributeSource\TransactionInterceptor三个bean
             
-                InfrastructureAdvisorAutoProxyCreator extends InstantiationAwareBeanPostProcessor  作用是把BeanFactoryTransactionAttributeSourceAdvisor\TransactionAttributeSource\TransactionInterceptor三个bean变成增强器
+                InfrastructureAdvisorAutoProxyCreator extends InstantiationAwareBeanPostProcessor  作用是把BeanFactoryTransactionAttributeSourceAdvisor这个bean变成增强器
                     
 
 6 ApplicationContext和BeanFactory的区别
