@@ -17,7 +17,7 @@ public class ServiceImpl implements Service {
 
     @Override
     public void doInsert() {
-        //mock insert-----
+        //mock insert-----1111
         jdbcTemplate.update("insert into a(name, code) values('1', '1')");
         System.out.println(1/0);
     }
