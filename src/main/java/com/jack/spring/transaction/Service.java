@@ -9,8 +9,4 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public interface Service {
     void doInsert();
-
-
-
-
 }
