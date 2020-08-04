@@ -274,3 +274,7 @@ new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, metho
     3 enhancer.setCallback(new MethodInterceptor() {});设置一个方法拦截器，增强方法
     4 NormalClass normalClass = (NormalClass) enhancer.create(); 创建目标代理类
     5 normalClass.publicMethod(); 执行代理类的方法
+    
+9 Spring-boot启动流程
+    spring-boot自动装配原理
+    spring-boot加载tomcat原理
