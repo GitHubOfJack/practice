@@ -275,6 +275,69 @@ new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, metho
     4 NormalClass normalClass = (NormalClass) enhancer.create(); 创建目标代理类
     5 normalClass.publicMethod(); 执行代理类的方法
     
-9 Spring-boot启动流程
+9 Spring-boot启动流程（监听机制）
+    SpringApplication.run(xxx.class, args);
+        new SpringApplication(xxx.class).run(args);
+            1 new流程：
+                1.1 确定容器类型 NONE,REACTIVE,SERVLET
+                1.2 设置初始化器 ApplicationContextInitializer.class getSpringFactoriesInstances
+                1.3 设置监听器   ApplicationListener.class
+            2 run流程
+                2.1 new StopWatch
+                2.2 stopWatch.start
+                2.3 配置headless属性
+                2.4 获取SpringApplicationRunListeners-EventPublishingRunListener（在该对象的构造方法中会添加1.3中的监听器）（此处的对象内部包含一个SimpleApplicationEventMulticaster）
+                2.5 2.4的的监听器starting方法--调用initMulticaster.multicastEvent(new ApplicationStratingEvent());
+                2.6 准备环境变量
+                2.7 打印banner
+                2.8 创建容器上下文
+                2.9 创建异常报告器  SpringBootExceptionReporter.class
+                2.10 准备容器
+                2.11 刷新容器
+                2.12 刷新后处理
+                2.13 stopWatch.stop
+                2.14 2.4的监听器started方法
+                2.15 callRunners
+                2.16 2.4的监听器running方法
+
     spring-boot自动装配原理
     spring-boot加载tomcat原理
+    
+    @SpringBootApplication
+        @SpringBootConfiguration
+            @Configuration
+        @EnableAutoConfiguration
+            @AutoConfigurationPackage
+                @Import(AutoConfigurationPackages.Registrar.class)
+            @Import(AutoConfigurationImportSelector.class)
+        @ComponentScan
+        
+        
+        
+Spring注解分类
+    @Component
+        @Controller
+        @Service
+        @Repository
+        @Configuration
+            @Bean
+            @Import
+            @ComponentScan
+            
+            @Profile
+            @ImportResource
+            @ComponentScans
+            @Primary
+            @Lazy
+            @PropertySource
+            
+            
+            @ConfigurationProperties--springboot注解
+            
+            
+            
+        @Value
+        @Autowired
+        @Resource
+        @Inject
+        @Qualifier
