@@ -31,6 +31,5 @@ public class CglibTest {
         NormalClass normalClass = (NormalClass) enhancer.create();
         normalClass.publicMethod();
         normalClass.staticMethod();
-
     }
 }

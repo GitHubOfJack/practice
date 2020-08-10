@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @ComponentScan({"com.jack.spring.scan"})
 @EnableAspectJAutoProxy
 @Import({DBConfig.class, PhoneFactoryBean.class, MyImportBeanDefinitionRegistry.class})
+//@Import({PhoneFactoryBean.class, MyImportBeanDefinitionRegistry.class})
 @EnableTransactionManagement
 public class MyConfig {
     @Bean

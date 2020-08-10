@@ -64,25 +64,73 @@ public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
 1 this()方法
 
 1 注册5个Spring常用的bean 
-    1.1 ConfigurationClassPostProcessor      处理@Configration注解(也会处理@Bean @ComponentScan @Import @ImportSource @PropertySources)
-        ConfigurationClassPostProcessor解析@Configration流程
-        1 postProcessBeanDefinitionRegistry
-        2 找出@Configration的类并为它打上lite\full标示
-                checkConfigurationClassCandidate()会判断一个是否是一个配置类,并为BeanDefinition设置属性为lite或者full。
-                在这儿为BeanDefinition设置lite和full属性值是为了后面在使用
-                如果加了@Configuration，那么对应的BeanDefinition为full;
-                如果加了@Bean,@Component,@ComponentScan,@Import,@ImportResource这些注解，则为lite。
-                lite和full均表示这个BeanDefinition对应的类是一个配置类
-        3 解析找出@Bean @ComponentScan @Import注解相关的类
-                解析配置类，在此处会解析配置类上的注解(ComponentScan扫描出的类，@Import注册的类，以及@Bean方法定义的类)
-                注意：这一步只会将加了@ComponentScan注解扫描的类才会加入到BeanDefinitionMap中
-                通过其他注解(例如@Import、@Bean)的方式，在parse()方法这一步并不会将其解析为BeanDefinition放入到BeanDefinitionMap中，
-                先把@Import解析成ConfigurationClass类，并且@Bean并不会解析成ConfigurationClass类
-                真正放入到map中是在下面的this.reader.loadBeanDefinitions()方法中实现的
-        4 通过reader读取beanDefinition
-                将上一步parser解析出的ConfigurationClass类加载成BeanDefinition
-                实际上经过上一步的parse()后，解析出来的bean已经放入到BeanDefinition中了，但是由于这些bean可能会引入新的bean，例如实现了ImportBeanDefinitionRegistrar或者ImportSelector接口的bean，或者bean中存在被@Bean注解的方法
-                因此需要执行一次loadBeanDefinition()，这样就会执行ImportBeanDefinitionRegistrar或者ImportSelector接口的方法或者@Bean注释的方法
+    1.1 ConfigurationClassPostProcessor--给BeanDefinitionMap中的BeanDefinition打标签，看它是不是@Configuration配置类      处理@Configration注解(也会处理@Bean @ComponentScan @Import @ImportSource @PropertySources)
+        spring解析@Configuration注解的过程
+        ConfigurationClassPostProcessor.postProcessBeanDefinitionRegistry();
+        
+        	1 获取所有的BeanDefinition   registry.getBeanDefinitionNames()
+        
+        	2 循环所有的BeanDefinition   ConfigurationClassUtils.checkConfigurationClassCandidate 找出加了@Configuration注解的类（只会有默认启动的类和@SpringBootApplication的类，此时只能获取@SpringBootApplication的类）
+        	checkConfigurationClassCandidate()会判断一个是否是一个配置类,并为BeanDefinition设置属性为lite或者full。
+            在这儿为BeanDefinition设置lite和full属性值是为了后面在使用
+            如果有@Configuration注解&&proxyBeanMethods=true则设置beanDefinition中的configurationClass的Attribute=full
+            如果@Component、@ComponentScan、@Import、@ImportResource、@Bean则设置为lite
+        
+        	3 ConfigurationClassParser.parse(2中的配置类)
+        		3.1 doProcessConfigurationClass()
+        			3.1.1 是否有@Component  
+        				3.1.1.1 SpringBootApplication注解什么也不做
+        				3.1.1.2 如果有内部类&&内部类是@Configuartion类，则执行3的流程
+        			3.1.2 是否有@PropertySSource注解 
+        				如果有则把相应的属性加入到Environment中
+        			3.1.3 是否有@ComponentScan注解
+        				3.1.3.1 ComponentScanAnnotationParser.parse()解析@SpringBootApplication注解的类，获取相关的BeanDefinition信息
+        					3.1.3.1.1 此处如果没有配置扫描的包路径，默认取@SpringBootApplication类所在的包路径
+        					3.1.3.1.2 ClassPathBeanDefinitionScanner.doScan(),扫描指定的路径
+        						 3.1.3.1.2.1 获取指定路径下的所有包含@Component的定义信息
+        						 	3.1.3.1.2.1.1 扫描指定路径下的所有类
+        						 	3.1.3.1.2.1.2 获取其中有@Component注解的类
+        						 3.1.3.1.2.2 注册上一步获取的BeanDefinition
+        				3.1.3.2 循环上一步获取的BeanDefinition信息，重复2、3、4、5的流程
+        			3.1.4 处理@Import注解
+        					3.1.4.1 如果是ImportSelector，则调用selectImports，得到相应的Bean,转换成SourceClassses,继续调用3.1.4进行@Import的解析
+        					3.1.4.2 如果是ImportBeanDefinitionRegistrar，则把key=注册器 value=注解元信息加入到configclasss的map中。 Map<ImportBeanDefinitionRegistrar, AnnotationMetadata>
+        					3.1.4.3 如果不是上述两种，则当成@Configuration类处理重复3的流程
+        			3.1.5 处理@ImportResource注解
+        					如果存在则加入到configClass的Map<String, Class<? extends BeanDefinitionReader>>中
+        			3.1.6 处理@Bean方法
+        					3.1.6.1 找出asm可以处理的@Bean方法
+        					3.1.6.2 把它加入到configClass的Set<BeanMethod>中
+        			3.1.7 处理接口中的默认方法
+        					3.1.7.1 获取所有的接口
+        					3.1.7.2 找出接口中所有@Bean注解的方法
+        					3.1.7.3 如果@Bean的方法不是abstract方法，则加入到configclass的Set<BeanMethod>中
+        			3.1.8 处理父类
+        					如果有父类，并且父类不是java开头，并且不是已经知道的父类，则把该父类当成sourceClass，继续3的流程
+        			3.1.9 流程处理完，返回null
+        		3.2 把解析完的configClass加入Map中
+        
+        	4 parser.getConfigurationClasses()，获取所有3.2中的Map的key值。
+        
+        	5 ConfigurationClassBeanDefinitionReader.loadBeanDefinitions(configClassess) 加载所有的配置类
+        		5.1 如果是@Import          configClass.isImported()
+        			new BeanDefinition()对象，通过解析@Lazy、@Primary、@DependsOn、@Role、@Description注解给Beandefinition对象赋属性值。
+        			然后把该BeanDefinition注册到容器中
+        		5.2 如果有@Bean注解         configClass.getBeanMethods()---如果一个配置类上有多个@Bean方法，则生成多个BeanDefinition
+        			new BeanDefinition()对象（该对象试试@Bean注解所在类的对象定义，不是@Bean返回对象的对象定义），设置
+        			beanDef.setFactoryBeanName(configClass.getBeanName());
+        			beanDef.setUniqueFactoryMethodName(methodName)这两个属性。
+        			通过解析@Lazy、@Primary、@DependsOn、@Role、@Description注解给Beandefinition对象赋属性值。
+        			再解析@Bean注解的属性给BeanDefinition属性赋值。
+        			解析@Scope给对象赋值
+        			然后把该BeanDefinition注册到容器中
+        		5.3 如果有@ImportSource注解  configClass.getImportedResources()
+        			xml文件解析
+        		5.4 如果有BeanDefinitionRegistry configClass.getImportBeanDefinitionRegistrars()
+        			执行所有的BeanDefinitionRegistry.registryBeanDefinition方法注册BeanDefinition
+        
+        	6 如果5解析之后又产生了新的类，则重复执行2、3、4、5的动作
+        	
         5 postProcessorBeanFactory
         6 enhanceConfigurationClasses(beanFactory)---增强配置类(为full的类进行CGLIB加强)
           对加了@Configuration注解的配置类进行Cglib代理
@@ -257,7 +305,7 @@ new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, metho
 
 ​	2 工厂模式
 
-​	3 观察者模式-listener
+​	3 观察者模式-listener  事件触发者  事件  事件监听者  
 
 ​	4 责任链模式
 
@@ -288,17 +336,23 @@ new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, metho
                 2.3 配置headless属性
                 2.4 获取SpringApplicationRunListeners-EventPublishingRunListener（在该对象的构造方法中会添加1.3中的监听器）（此处的对象内部包含一个SimpleApplicationEventMulticaster）
                 2.5 2.4的的监听器starting方法--调用initMulticaster.multicastEvent(new ApplicationStratingEvent());
-                2.6 准备环境变量
-                2.7 打印banner
-                2.8 创建容器上下文
+                2.6 准备环境变量 prepareEnvironment-把参数赋给环境 调用2.4的对象发布ApplicationEnvironmentPreparedEvent事件
+                2.7 打印banner printBanner()
+                2.8 创建容器上下文  createApplicationContext()--根据不同的容器类型生成对应的applicationContext对象  AnnotationConfigApplicationContext AnnotationConfigServletWebServerApplicationContext(生成此对象时，在构造方法中会注册5个常用的beandefinition,跟SPRING容器启动流程中的this()构造方法一致)
                 2.9 创建异常报告器  SpringBootExceptionReporter.class
-                2.10 准备容器
-                2.11 刷新容器
-                2.12 刷新后处理
-                2.13 stopWatch.stop
-                2.14 2.4的监听器started方法
-                2.15 callRunners
-                2.16 2.4的监听器running方法
+                2.10 准备容器 prepareContext()  
+                    给applicationContext设置属性，environment\resourceLoader等 
+                    此处会调用1.2获取的初始化器进行初始化 
+                    同时会用2.4的对象发布ApplicationContextInitializedEvent事件
+                    加载SpringBoot的启动类---通过AnnotatedBeanDefinitionReader把启动类的定义信息加入BeanFactory
+                    调用2.4的对象发布ApplicationPreparedEvent事件
+                2.11 刷新容器 refreshContext()
+                2.12 刷新后处理 afterRefresh()--空方法
+                2.13 stopWatch.stop  计时器停止
+                2.14 2.4的监听器started方法  容器发布ApplicationStartedEvent事件，此处的applicationEventMulticaster是否和2.4中的一致？与2.4不是同一个对象，但是都是同一个类 同时发布AvailabilityChangeEvent事件
+                2.15 callRunners   获取容器中的ApplicationRunner对象和CommandLineRunner.class对象，调用他们的run方法---干什么用？
+                如果有异常，通过异常报告器处理异常
+                2.16 2.4的监听器running方法 和2.14流程一样，发布ApplicationReadyEvent方法，发布AvailabilityChangeEvent事件
 
     spring-boot自动装配原理
     spring-boot加载tomcat原理
