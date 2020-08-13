@@ -45,6 +45,7 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
      this();//会在此处把SPRING内部的BEAN加入到beanDefinitionMap中，其中最重要的是ConfigurationClassPostProcessor和AutowiredAnnotationBeanPostProcessor这两个BEAN
      register(componentClasses);//把CONFIG类加入到beanDefinitionMap中
      refresh();
+     
  }
 
 
@@ -139,11 +140,10 @@ public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
                 被代理的对象，如何对方法进行增强呢？就是通过MethodInterceptor拦截器实现的
                 类似于SpringMVC中的拦截器，每次执行请求时，都会对经过拦截器。
                 同样，加了MethodInterceptor，那么在每次代理对象的方法时，都会先经过MethodInterceptor中的方法
-        7 增加ImportAwareBeanPostProcessor 
-                为被CGLIB增强时实现了EnhancedConfiguration接口的代理类，设置beanFactory属性?????
-    1.2 AutowiredAnnotationBeanPostProcessor 处理@Autowired @Value @Inject注解
-    1.3 CommonAnnotationBeanPostProcessor    处理@Resource注解
-    1.4 EventListenerMethodProcessor         处理ApplicationEvent和ApplicationListener
+        7 增加ImportAwareBeanPostProcessor
+    1.2 AutowiredAnnotationBeanPostProcessor--InstantiationAwareBeanPostProcessor 通过postProcessProperties方法处理@Autowired @Value @Inject注解
+    1.3 CommonAnnotationBeanPostProcessor--InstantiationAwareBeanPostProcessor    通过postProcessProperties方法处理处理@Resource 通过postProcessBeforeInitialization处理@PostConstruct @PreDestroy注解
+    1.4 EventListenerMethodProcessor--BeanFactoryPostProcessor\SmartInitializingSingleton         处理ApplicationEvent和ApplicationListener
     1.5 DefaultEventListenerFactory
 2 把@Conponent和@Resource\@Inject注解加入List<TypeFilter> includeFilters中
 
@@ -160,10 +160,10 @@ public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
  给工厂启个名字，然后返回一个BEAN工厂,如果是XML文件的工厂，此处会解析XML中的内容加入beanDefinitionMap
 
  3 prepareBeanFactory()
- 给容器添加一些特性比如：classloader\environment
+ 给容器添加一些特性比如：classloader\environment\beanPostProcessor
 
  4 postProcessBeanFactory()
- 留给子类实现的方法，可以在此处在beanFactory中添加特性
+ 留给子类实现的方法，可以在此处在beanFactory中添加特性（添加一些BeanPostProcessor）
 
  5 invokeBeanFactoryPostProcessors()
  执行所有的BeanFactoryPostProcessor处理器
@@ -187,7 +187,7 @@ public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
  10 registerListeners()
  注册监听器
 
- 11 finishBeanFactoryInitialization()-->getBean()
+ 11 finishBeanFactoryInitialization()
  完成剩余所有BEAN的创建
 
  12 finishRefresh()
@@ -198,34 +198,56 @@ public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
 
 
 
-
+finishBeanFactoryInitialization流程：
+    1 for(beanDefinitionNames) {
+        if(!abstract && isSingleton && !lazy) {
+            if(isFactoryBean) {
+                getBean(&beanName)
+            } else {
+                getBean(beanName)
+            }
+        }
+    }
+    2 for(beanDefinitionNames) {
+          Object singletonInstance = getSingleton(beanName);
+          if(SmartInitializingSingleton) {
+            smartSingleton.afterSingletonsInstantiated();----EventListenerMethodProcessor.afterSingletonsInstantiated处理@EventListener注解，内部是把有注解的方法转换成ApplicationListener对象
+          }
+      }
  getBean流程:
   AbstractBeanFactory.doGetBean()
-   1 transformedBeanName->处理beanfactory类型对象名字
+   1 transformedBeanName->处理factorybean类型对象名字
    2 getSingleton->获取单例对象,此处主要是从缓存中获取,singletonObjects,earlySingletonObjects,singletonFactorie，如果singletonFactorie中存在，则把对象从singletonFactorie删除，并加入到earlySingletonObjects对象中
-   3 如果单例对象存在则getObjectForBeanInstance->获取真正的BEA，处理beanfactory的对象
+   3 如果单例对象存在则getObjectForBeanInstance->获取真正的BEAN，处理factorybean的对象
    4 如果单例对象不存在   isPrototypeCurrentlyInCreation(ThreadLocal<Object> prototypesCurrentlyInCreation)->检查对象是否在创建，如果在创建则报BeanCurrentlyInCreationException
    5 markBeanAsCreated->把对象标记为创建中 Set<String> alreadyCreated
-   6 如果是单例对象   getSingleton(beanName, ObjectFactory)->
-     6.1 通过匿名内部类实现ObjectFactory->调用createBean生成返回的bean对象
-       AbstractAutowireCapableBeanFactory.createBean()的调用流程:
-       6.1.1 resolveBeforeInstantiation()->在实例化前，如果InstantiationAwareBeanPostProcessor存在，则调用postProcessBeforeInstantiation创建对象，再执行所有BeanPostProcessor的postProcessAfterInitialization方法，然后返回
-
-       6.1.2 调用AbstractAutowireCapableBeanFactory.doCreateBean()
-       doCreateBean的调用流程
-         6.1.2.1 createBeanInstance->instantiateBean()返回BeanWrapper，BEAN的封装对象
-         6.1.2.2 addSingletonFactory->把BEAN加入到singletonFactories中（SmartInstantiationAwareBeanPostProcessor）
-         6.1.2.3 populateBea()->执行postProcessAfterInstantiation方法，然后调用SETTER方法给属性赋值  @Autowired
-         6.1.2.4 initializeBean()->执行BEAN的初始化方法
-                 1 invokeAwareMethods->执行实现了BeanNameAware，BeanClassLoaderAware，BeanFactoryAware接口的属性
-                 2 执行BeanPostProcessor处理器的postProcessBeforeInitialization方法
-                 3 invokeInitMethods->
-                   3.1 执行实现了InitializingBean的方法
-                   3.2 执行指定了init_method()的方法
-                 4 执行BeanPostProcessor处理器的postProcessAfterInitialization
-         6.1.2.5 注册DisposableBean
-     6.2 addSingleton->把BEAN加入singletonObjects和registeredSingletons中，并从singletonFactories和earlySingletonObjects中删除
-     6.3 通过6.1返回的对象，调用getObjectForBeanInstance，原理同上3
+   6 如果是单例对象   
+     6.1 getSingleton(beanName, ObjectFactory)
+         6.1.1 beforeSingletonCreation(beanName);--检查该对象是否在创建中，singletonsCurrentlyInCreation放入到这个Set集合中
+         6.1.2 singletonObject = singletonFactory.getObject();//调用工厂方法生成对象
+            AbstractAutowireCapableBeanFactory.createBean()的调用流程:
+                6.1.2.1 Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+                    在实例化前，如果InstantiationAwareBeanPostProcessor存在，
+                    则调用postProcessBeforeInstantiation创建对象，  -- AOP增强器在这个位置添加
+                    再执行所有BeanPostProcessor的postProcessAfterInitialization方法，如果有值，直接返回，流程结束。
+                6.1.2.2 Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+                    AbstractAutowireCapableBeanFactory.doCreateBean()的调用流程:
+                        6.1.2.2.1 BeanWrapper instanceWrapper = createBeanInstance(beanName, mbd, args);返回BeanWrapper，BEAN的封装对象
+                        6.1.2.2.2 addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean))把BEAN加入到singletonFactories中（SmartInstantiationAwareBeanPostProcessor）
+                        6.1.2.2.3 populateBean(beanName, mbd, instanceWrapper);
+                                    1 执行InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation方法
+                                    2 InstantiationAwareBeanPostProcessor.postProcessProperties  @AutoWired @Resource @Inject
+                        6.1.2.2.4 exposedObject = initializeBean(beanName, exposedObject, mbd);
+                                    1 invokeAwareMethods->执行实现了BeanNameAware，BeanClassLoaderAware，BeanFactoryAware接口的属性
+                                    2 执行BeanPostProcessor处理器的postProcessBeforeInitialization方法   CommonAnnotationBeanPostProcessor.before方法可以处理@PostConstruct
+                                    3 invokeInitMethods->
+                                        3.1 执行实现了InitializingBean的方法
+                                        3.2 执行指定了init_method()的方法
+                                    4 执行BeanPostProcessor处理器的postProcessAfterInitialization  ---AOP在此生成代理对象
+                        6.1.2.2.6 registerDisposableBeanIfNecessary(beanName, bean, mbd);
+         6.1.3 afterSingletonCreation(beanName);--把这个beanName从singletonsCurrentlyInCreation集合中删除
+         6.1.4 addSingleton(beanName, singletonObject);--把单例对象放入SingletonObject的Map中，并把它从earlySingletonObject的MAP和SingletonFactory的MAP中删除.
+     6.2 通过6.1返回的对象，调用getObjectForBeanInstance，原理同上3
    7 如果是原型模式
      7.1 beforePrototypeCreation -> 在prototypesCurrentlyInCreation中加入当前的BEAN
      7.2 createBean->创建对象 同6.1
@@ -293,6 +315,8 @@ new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, metho
             TransactionStatus       savepoint
             TransactionDefinition   7大传播属性 4种隔离级别
              
+             
+  @Async注解--同AOP
 
 6 ApplicationContext和BeanFactory的区别
   ApplicationContext extends EnvironmentCapable, MessageSource, ApplicationEventPublisher, ResourceLoader
