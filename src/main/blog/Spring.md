@@ -145,7 +145,6 @@ public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
     1.3 CommonAnnotationBeanPostProcessor--InstantiationAwareBeanPostProcessor    通过postProcessProperties方法处理处理@Resource 通过postProcessBeforeInitialization处理@PostConstruct @PreDestroy注解
     1.4 EventListenerMethodProcessor--BeanFactoryPostProcessor\SmartInitializingSingleton         处理ApplicationEvent和ApplicationListener
     1.5 DefaultEventListenerFactory
-2 把@Conponent和@Resource\@Inject注解加入List<TypeFilter> includeFilters中
 
 2 register(componentClasses)
 
@@ -259,6 +258,10 @@ finishBeanFactoryInitialization流程：
 4 Spring中@Configration和@Autowired工作原理
 
 5 Spring事务的原理，AOP
+    Advisor getAdvice();
+    Advice
+    MethodInterceptor->Interceptor->Advice invoke(MethodInvocation invocation);
+    ExposeInvocationInterceptor\AspectJAroundAdvice\MethodBeforeAdviceInterceptor-AspectJMethodBeforeAdvice\AspectJAfterAdvice\AfterReturningAdviceInterceptor-AspectJAfterReturningAdvice\AspectJAfterThrowingAdvice
     @PointCut表达式的写法
         execute      execution(* com.xyz.service..*.*(..))
         within       within(com.xyz.service..*) 表达式格式：包名.* 或者 包名..*
@@ -269,20 +272,73 @@ finishBeanFactoryInitialization流程：
         @within      @within(com.ms.aop.jwithin.Annotation1)  声明有com.ms.aop.jwithin.Annotation1注解的类中的所有方法都会被拦截
         @annotation  @annotation(com.ms.aop.jannotation.demo2.Annotation1) 匹配有指定注解的方法（注解作用在方法上面）
         @args        方法参数所属的类型上有指定的注解，被匹配
-    @EnableAspectJAutoProxy->@Import(AspectJAutoProxyRegistrar.class)
+    @EnableAspectJAutoProxy->@Import(AspectJAutoProxyRegistrar.class->ImportBeanDefinitionRegistry)
         AspectJAutoProxyRegistrar->注册internalAutoProxyCreator:AnnotationAwareAspectJAutoProxyCreator.class
-
-​	AnnotationAwareAspectJAutoProxyCreator extends InstantiationAwareBeanPostProcessor,BeanFactoryAware
-
-   所以在registerBeanPostProcessors的时候会把AnnotationAwareAspectJAutoProxyCreator这个对象放到容器中,
-   在创建目标对象时，在后置处理器中通过proxyFactory生成代理对象  CGLIB
-   执行目标方法时   CglibAopProxy
-   List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
-
-```
-new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, methodProxy).proceed()
-```
-
+​	    AnnotationAwareAspectJAutoProxyCreator extends InstantiationAwareBeanPostProcessor,BeanFactoryAware
+        所以在registerBeanPostProcessors的时候会把AnnotationAwareAspectJAutoProxyCreator这个对象放到容器中,
+        在创建目标对象时，在后置处理器中通过proxyFactory生成代理对象  CGLIB
+        执行postProcessAfterInitialization的流程：
+            wrapIfNecessary->
+                1 getAdvicesAndAdvisorsForBean
+                    1.1 findCandidateAdvisors 获取所有增强器-类中所有的方法
+                        1.1.1 super.findCandidateAdvisors() 获取所有Advisor接口的类
+                        1.1.2 aspectJAdvisorsBuilder.buildAspectJAdvisors() 获取所有@AspcetJ的类 --@Befor @After注解的排序是通过获取Methods之后，通过method排序（通过解析method上的注解，通过指定的顺序排序）
+                    1.2 findAdvisorsThatCanApply 找出所有增强器中可以使用在该类中的增强器，先for循环所有的增强器，里面for循环class中所有的方法，看是否匹配。
+                    1.3 extendAdvisors(eligibleAdvisors); 在集合首位加入集合首位加入ExposeInvocationInterceptor增强  ExposeInvocationInterceptor的作用是可以将当前的MethodInvocation暴露为一个thread-local对象
+                    1.3 sortAdvisors 根据ORDER排序-只支持切面类级别的排序，不支持方法级别的排序
+                        首先判断当前Advisor所在的切面类是否实现org.springframework.core.Ordered接口，是的话调用getOrder方法获取
+                        否则判断当前Advisor所在的切面类是否包含org.springframework.core.annotation.Order注解，是的话从注解获取
+                2 createProxy
+                    2.1 ProxyFactory proxyFactory = new ProxyFactory();
+                    2.2 Advisor[] advisors = buildAdvisors(beanName, specificInterceptors); proxyFactory.addAdvisors(advisors);
+                    2.3 proxyFactory.getProxy(getProxyClassLoader());
+                        2.3.1 JdkDynamicAopProxy CglibAopProxy
+        执行目标方法时   CglibAopProxy.intercept();
+        List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
+        new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, methodProxy).proceed();-->ReflectiveMethodInvocation.proceed();
+            ReflectiveMethodInvocation.proceed();
+                if (index == size-1) {//index默认=-1
+                    执行目标方法
+                } 
+                从增强器List中找出第++index个增强器
+                if (instanceof InterceptorAndDynamicMethodMatcher) {//before,after,afterreturning,afterthrowing
+                    .invoke();
+                } else {//expose
+                    .invoke();
+                }
+            ExposeInvocationInterceptor.invoke(mi){
+               old = invocation.get();
+               invocation.set(mi);
+               try{
+                 return mi.proceed();
+               } finally {
+                 invocation.set(old);
+               }
+            }
+            MethodBeforeAdviceInterceptor.invoke(mi){
+                AspectJMethodBeforeAdvice.before();->invokeAdviceMethod(getJoinPointMatch(), null, null);
+                return mi.proceed();
+            }
+            AspectJAfterAdvice.invoke() {
+                try {
+                    return mi.proceed();
+                } finally {
+                    invokeAdviceMethod(getJoinPointMatch(), null, null);
+                }
+            }
+            AfterReturningAdviceInterceptor.invoke(mi){
+                Object retVal = mi.proceed();
+                AspectJAfterReturningAdvice.afterReturning();->invokeAdviceMethod(getJoinPointMatch(), retValue, null);
+                return retVal;
+            }
+            AspectJAfterThrowingAdvice.invoke(mi) {
+                try {
+                    return mi.proceed();
+                } catch (Throwable ex) {
+                    invokeAdviceMethod(getJoinPointMatch(), null, ex);
+                }
+            }
+            invokeAdviceMethod会从当前线程中获取mi
 
 
 @EnableTransactionManagement
