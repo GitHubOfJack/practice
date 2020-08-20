@@ -282,10 +282,10 @@ finishBeanFactoryInitialization流程：
                 1 getAdvicesAndAdvisorsForBean
                     1.1 findCandidateAdvisors 获取所有增强器-类中所有的方法
                         1.1.1 super.findCandidateAdvisors() 获取所有Advisor接口的类
-                        1.1.2 aspectJAdvisorsBuilder.buildAspectJAdvisors() 获取所有@AspcetJ的类 --@Befor @After注解的排序是通过获取Methods之后，通过method排序（通过解析method上的注解，通过指定的顺序排序）
+                        1.1.2 aspectJAdvisorsBuilder.buildAspectJAdvisors() 获取所有@AspcetJ的类 --@Befor @After注解增加declarationOrder的排序是通过获取Methods之后，通过method排序（通过解析method上的注解，通过指定的顺序排序）
                     1.2 findAdvisorsThatCanApply 找出所有增强器中可以使用在该类中的增强器，先for循环所有的增强器，里面for循环class中所有的方法，看是否匹配。
                     1.3 extendAdvisors(eligibleAdvisors); 在集合首位加入集合首位加入ExposeInvocationInterceptor增强  ExposeInvocationInterceptor的作用是可以将当前的MethodInvocation暴露为一个thread-local对象
-                    1.3 sortAdvisors 根据ORDER排序-只支持切面类级别的排序，不支持方法级别的排序
+                    1.3 sortAdvisors 根据ORDER排序-只支持切面类级别的排序，不支持方法级别的排序,@Befor @After注解，是通过declarationorder排序的，SortObjet->T\smallerObjects\biggerObjects ->两层循环，第一层是确定位置，第二层是找出增强器，增强器的标准是，后置增强器大的先执行，然后前置增强器小的先执行
                         首先判断当前Advisor所在的切面类是否实现org.springframework.core.Ordered接口，是的话调用getOrder方法获取
                         否则判断当前Advisor所在的切面类是否包含org.springframework.core.annotation.Order注解，是的话从注解获取
                 2 createProxy
@@ -293,7 +293,7 @@ finishBeanFactoryInitialization流程：
                     2.2 Advisor[] advisors = buildAdvisors(beanName, specificInterceptors); proxyFactory.addAdvisors(advisors);
                     2.3 proxyFactory.getProxy(getProxyClassLoader());
                         2.3.1 JdkDynamicAopProxy CglibAopProxy
-        执行目标方法时   CglibAopProxy.intercept();
+        执行目标方法时   CglibAopProxy.intercept(); Expose->throw->return->after->around->before
         List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
         new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, methodProxy).proceed();-->ReflectiveMethodInvocation.proceed();
             ReflectiveMethodInvocation.proceed();
@@ -339,6 +339,9 @@ finishBeanFactoryInitialization流程：
                 }
             }
             invokeAdviceMethod会从当前线程中获取mi
+            AspectJAroundAdvice.invoke(im) {
+                invokeAdviceMethod() -> proceedingJoinPoint.proceed();
+            }
 
 
 @EnableTransactionManagement
