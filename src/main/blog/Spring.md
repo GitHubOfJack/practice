@@ -79,9 +79,7 @@ public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
         
         	3 ConfigurationClassParser.parse(2中的配置类)
         		3.1 doProcessConfigurationClass()
-        			3.1.1 是否有@Component  
-        				3.1.1.1 SpringBootApplication注解什么也不做
-        				3.1.1.2 如果有内部类&&内部类是@Configuartion类，则执行3的流程
+        			3.1.1 如果有@Component&&如果有内部类&&内部类是@Configuartion类，则执行3的流程
         			3.1.2 是否有@PropertySSource注解 
         				如果有则把相应的属性加入到Environment中
         			3.1.3 是否有@ComponentScan注解
@@ -258,10 +256,14 @@ finishBeanFactoryInitialization流程：
 4 Spring中@Configration和@Autowired工作原理
 
 5 Spring事务的原理，AOP
-    Advisor getAdvice();
-    Advice
-    MethodInterceptor->Interceptor->Advice invoke(MethodInvocation invocation);
-    ExposeInvocationInterceptor\AspectJAroundAdvice\MethodBeforeAdviceInterceptor-AspectJMethodBeforeAdvice\AspectJAfterAdvice\AfterReturningAdviceInterceptor-AspectJAfterReturningAdvice\AspectJAfterThrowingAdvice
+    MethodInterceptor invoke(MethodInvocation invocation)->Interceptor->Advice
+    ExposeInvocationInterceptor(是MethodInterceptor.invoke())
+    AspectJAroundAdvice(是MethodInterceptor.invoke())
+    MethodBeforeAdviceInterceptor-AspectJMethodBeforeAdvice
+    AspectJAfterAdvice是MethodInterceptor.invoke()
+    AfterReturningAdviceInterceptor-AspectJAfterReturningAdvice
+    AspectJAfterThrowingAdvice是MethodInterceptor.invoke()
+    非MethodInterceptor的增强器是在CglibAopProxy.intercept()这个执行时获取责任链时，如果非MethodInterceptor则需要对Advisor加强。通过AdvisorAdapter进行转换。
     @PointCut表达式的写法
         execute      execution(* com.xyz.service..*.*(..))
         within       within(com.xyz.service..*) 表达式格式：包名.* 或者 包名..*
@@ -351,14 +353,134 @@ finishBeanFactoryInitialization流程：
 ​		->AutoProxyRegistrar ProxyTransactionManagementConfiguration
             AutoProxyRegistrar implements ImportBeanDefinitionRegistrar -> 注册了一个internalAutoProxyCreator=InfrastructureAdvisorAutoProxyCreator
             ProxyTransactionManagementConfiguration是一个@Configuration -> BeanFactoryTransactionAttributeSourceAdvisor\TransactionAttributeSource\TransactionInterceptor三个bean
-            
-                InfrastructureAdvisorAutoProxyCreator extends InstantiationAwareBeanPostProcessor  作用是把BeanFactoryTransactionAttributeSourceAdvisor这个bean变成增强器
-             
-             
+            InfrastructureAdvisorAutoProxyCreator extends InstantiationAwareBeanPostProcessor
+            执行postProcessAfterInitialization的流程：
+                        wrapIfNecessary->
+                            1 getAdvicesAndAdvisorsForBean
+                                1.1 findCandidateAdvisors 获取所有增强器-类中所有的方法
+                                    1.1.1 super.findCandidateAdvisors() 获取所有Advisor接口的类  在此可以获取BeanFactoryTransactionAttributeSourceAdvisor增强器
+                                1.2 findAdvisorsThatCanApply 同AOP一样，通过二层循环解决，通过TransactionAttributeSource找出所有的匹配的@Transactional注解-先从目标方法上获取、再从目标类上获取、再从接口方法中获取，再从接口类上获取
+                            2 createProxy
+                                2.1 ProxyFactory proxyFactory = new ProxyFactory();
+                                2.2 Advisor[] advisors = buildAdvisors(beanName, specificInterceptors); proxyFactory.addAdvisors(advisors);
+                                2.3 proxyFactory.getProxy(getProxyClassLoader());
+                                    2.3.1 JdkDynamicAopProxy CglibAopProxy
             JdkDynamicAopProxy 
             	List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
                 MethodInvocation invocation = new ReflectiveMethodInvocation(proxy, target, method, args, targetClass, chain);
-                retVal = invocation.proceed();
+                invocation.proceed();
+                和AOP的执行流程是一致的
+            TransactionInterceptor.invoke(mi);
+                invokeWithinTransaction() {
+                    //如果非事务方法，则txAttr为NULL
+                    TransactionAttributeSource tas = getTransactionAttributeSource();
+                    TransactionAttribute txAttr = (tas != null ? tas.getTransactionAttribute(method, targetClass) : null);
+                    //如果注解上指定了transactionManager则使用该tm,如果拦截器有tm，如果没有则取TransactionManager类型的tm;
+                    TransactionManager tm = determineTransactionManager(txAttr);
+                    TransactionInfo txInfo = createTransactionIfNecessary(ptm, txAttr, joinpointIdentification);
+                    try {
+                        // This is an around advice: Invoke the next interceptor in the chain.
+                        // This will normally result in a target object being invoked.
+                        retVal = invocation.proceedWithInvocation();
+                    }
+                    catch (Throwable ex) {
+                        // target invocation exception
+                        completeTransactionAfterThrowing(txInfo, ex);
+                        throw ex;
+                    }
+                    finally {
+                        cleanupTransactionInfo(txInfo);
+                    }
+                    if (vavrPresent && VavrDelegate.isVavrTry(retVal)) {
+                        // Set rollback-only in case of Vavr failure matching our rollback rules...
+                        TransactionStatus status = txInfo.getTransactionStatus();
+                        if (status != null && txAttr != null) {
+                            retVal = VavrDelegate.evaluateTryFailure(retVal, txAttr, status);
+                        }
+                    }
+                    commitTransactionAfterReturning(txInfo);
+                    return retVal;
+                }
+                
+                createTransactionIfNecessary() {
+                    TransactionStatus status = tm.getTransaction(txAttr);
+                    return prepareTransactionInfo(tm, txAttr, joinpointIdentification, status);
+                }
+                
+                getTransaction() {
+                    Object transaction = doGetTransaction();
+                    if (isExistingTransaction(transaction)) {
+                        // Existing transaction found -> check propagation behavior to find out how to behave.
+                        return handleExistingTransaction(def, transaction, debugEnabled);
+                    }
+                    if (def.getTimeout() < TransactionDefinition.TIMEOUT_DEFAULT) {
+                        throw new InvalidTimeoutException("Invalid transaction timeout", def.getTimeout());
+                    }
+                    if (def.getPropagationBehavior() == TransactionDefinition.PROPAGATION_MANDATORY) {
+                        throw new IllegalTransactionStateException(
+                                "No existing transaction found for transaction marked with propagation 'mandatory'");
+                    }
+                    else if (def.getPropagationBehavior() == TransactionDefinition.PROPAGATION_REQUIRED ||
+                            def.getPropagationBehavior() == TransactionDefinition.PROPAGATION_REQUIRES_NEW ||
+                            def.getPropagationBehavior() == TransactionDefinition.PROPAGATION_NESTED) {
+                        SuspendedResourcesHolder suspendedResources = suspend(null);
+                        if (debugEnabled) {
+                            logger.debug("Creating new transaction with name [" + def.getName() + "]: " + def);
+                        }
+                        try {
+                            return startTransaction(def, transaction, debugEnabled, suspendedResources);
+                        }
+                        catch (RuntimeException | Error ex) {
+                            resume(null, suspendedResources);
+                            throw ex;
+                        }
+                    }
+                    else {
+                        // Create "empty" transaction: no actual transaction, but potentially synchronization.
+                        if (def.getIsolationLevel() != TransactionDefinition.ISOLATION_DEFAULT && logger.isWarnEnabled()) {
+                            logger.warn("Custom isolation level specified but no actual transaction initiated; " +
+                                    "isolation level will effectively be ignored: " + def);
+                        }
+                        boolean newSynchronization = (getTransactionSynchronization() == SYNCHRONIZATION_ALWAYS);
+                        return prepareTransactionStatus(def, null, true, newSynchronization, debugEnabled, null);
+                    }
+                }
+                
+                handxlistingTransacti{
+                    if(never) {
+                        throw exception
+                    }
+                    if(not_support) {
+                        Object suspendedResources = suspend(transaction);
+                        return prepareTransactionStatus(definition, null, false, newSynchronization, debugEnabled, suspendedResources);
+                    }
+                    if(new){
+                        SuspendedResourcesHolder suspendedResources = suspend(transaction);
+                        return startTransaction(definition, transaction, debugEnabled, suspendedResources)
+                    }
+                    if(nested) {
+                        DefaultTransactionStatus status = prepareTransactionStatus(definition, transaction, false, false, debugEnabled, null);
+                        status.createAndHoldSavepoint();
+                        return status;
+                    }
+                    //mandantory\never\support\not_support\require\require_new\nested
+                    if(mandantory || support || require) {
+                        return prepareTransactionStatus(definition, transaction, false, newSynchronization, debugEnabled, null);
+                    }
+                }
+                
+                completeTransactionAfterThrowing{
+                    if (txInfo.transactionAttribute != null && txInfo.transactionAttribute.rollbackOn(ex)) {
+                        txInfo.getTransactionManager().rollback(txInfo.getTransactionStatus());
+                    } else {
+                        txInfo.getTransactionManager().commit(txInfo.getTransactionStatus());
+                    }
+                    
+                }
+                
+                
+                
+                
              
             CglibAopProxy  
             
@@ -394,7 +516,7 @@ finishBeanFactoryInitialization流程：
 
 ​	5 代理模式
 
-   6 适配器模式
+    6 适配器模式-aop(非MethodInterceptor转换成)
 
 8 CGLIIB
     无法为final方法或者类创建代理，无法为static方法创建代理，无法为private方法创建代理
