@@ -446,7 +446,16 @@ finishBeanFactoryInitialization流程：
                     }
                 }
                 
-                handxlistingTransacti{
+                doGetTransaction() {
+                    DataSourceTransactionObject txObject = new DataSourceTransactionObject();
+                    txObject.setSavepointAllowed(isNestedTransactionAllowed());
+                    ConnectionHolder conHolder =
+                            (ConnectionHolder) TransactionSynchronizationManager.getResource(obtainDataSource());
+                    txObject.setConnectionHolder(conHolder, false);
+                    return txObject;
+                }
+                
+                handexlistingTransacti{
                     if(never) {
                         throw exception
                     }
@@ -469,6 +478,37 @@ finishBeanFactoryInitialization流程：
                     }
                 }
                 
+                startTransaction {
+                    boolean newSynchronization = (getTransactionSynchronization() != SYNCHRONIZATION_NEVER);
+                    DefaultTransactionStatus status = newTransactionStatus(
+                            definition, transaction, true, newSynchronization, debugEnabled, suspendedResources);
+                    doBegin(transaction, definition);
+                    prepareSynchronization(status, definition);
+                    return status;
+                }
+                
+                doBegin{
+                    if (!txObject.hasConnectionHolder() ||
+                    					txObject.getConnectionHolder().isSynchronizedWithTransaction()) {
+                        Connection newCon = obtainDataSource().getConnection();
+                        txObject.setConnectionHolder(new ConnectionHolder(newCon), true);
+                    }
+                    txObject.getConnectionHolder().setSynchronizedWithTransaction(true);
+                    con = txObject.getConnectionHolder().getConnection();
+                    Integer previousIsolationLevel = DataSourceUtils.prepareConnectionForTransaction(con, definition);
+                    if (con.getAutoCommit()) {
+                        txObject.setMustRestoreAutoCommit(true);
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Switching JDBC Connection [" + con + "] to manual commit");
+                        }
+                        con.setAutoCommit(false);
+                    }
+                    txObject.getConnectionHolder().setTransactionActive(true);
+                    if (txObject.isNewConnectionHolder()) {
+                        TransactionSynchronizationManager.bindResource(obtainDataSource(), txObject.getConnectionHolder());
+                    }
+                }
+                
                 completeTransactionAfterThrowing{
                     if (txInfo.transactionAttribute != null && txInfo.transactionAttribute.rollbackOn(ex)) {
                         txInfo.getTransactionManager().rollback(txInfo.getTransactionStatus());
@@ -478,9 +518,63 @@ finishBeanFactoryInitialization流程：
                     
                 }
                 
+                rollback{
+                    if (status.hasSavepoint()) {
+                        if (status.isDebug()) {
+                            logger.debug("Rolling back transaction to savepoint");
+                        }
+                        status.rollbackToHeldSavepoint();
+                    }
+                    else if (status.isNewTransaction()) {
+                        if (status.isDebug()) {
+                            logger.debug("Initiating transaction rollback");
+                        }
+                        doRollback(status);
+                    }else {
+                        if (status.hasTransaction()) {
+                            doSetRollbackOnly(status);
+                        }
+                    }
+                    finally {
+                        cleanupAfterCompletion(status);
+                    }
+                }
+                
+                private void cleanupAfterCompletion(DefaultTransactionStatus status) {
+                		status.setCompleted();
+                		if (status.isNewSynchronization()) {
+                			TransactionSynchronizationManager.clear();
+                		}
+                		if (status.isNewTransaction()) {
+                			doCleanupAfterCompletion(status.getTransaction());
+                		}
+                		if (status.getSuspendedResources() != null) {
+                			if (status.isDebug()) {
+                				logger.debug("Resuming suspended transaction after completion of inner transaction");
+                			}
+                			Object transaction = (status.hasTransaction() ? status.getTransaction() : null);
+                			resume(transaction, (SuspendedResourcesHolder) status.getSuspendedResources());
+                		}
+                	}
                 
                 
-                
+                protected void cleanupTransactionInfo(@Nullable TransactionInfo txInfo) {
+                		if (txInfo != null) {
+                			txInfo.restoreThreadLocalStatus();
+                		}
+                	}
+               
+                commit {
+                    if (status.hasSavepoint()) {
+                        status.releaseHeldSavepoint();
+                    }
+                    else if (status.isNewTransaction()) {
+                        doCommit(status);
+                    }
+                    finally {
+                    			cleanupAfterCompletion(status);
+                    		}
+                }
              
             CglibAopProxy  
             
