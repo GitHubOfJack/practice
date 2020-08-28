@@ -1,5 +1,7 @@
 package com.jack.spring;
 
+import com.jack.spring.aop.BizImpl;
+import com.jack.spring.aop.BizInterface;
 import com.jack.spring.aop.Buss;
 import com.jack.spring.event.MyApplicationEvent;
 import com.jack.spring.factorybean.PhoneFactoryBean;
@@ -60,6 +62,13 @@ public class SpringTest {
         DataSourceBean bean4 = applicationContext.getBean(DataSourceBean.class);
         System.out.println(bean3 == bean4);
 
+        Car createCar = (Car) applicationContext.getBean("createCar");
+        createCar.doAsync();
+
+        BizImpl bizImpl = (BizImpl)applicationContext.getBean("bizImpl");
+        //bizImpl.doTest();
+        bizImpl.doSuper1();
+
         Service bean5 = applicationContext.getBean(Service.class);
         bean5.doInsert();
 
@@ -70,5 +79,7 @@ public class SpringTest {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
+
     }
 }

@@ -17,6 +17,11 @@ public class Car {
 
     private String name;
 
+    @Async
+    public void doAsync() {
+        System.out.println("doAsync");
+    }
+
     @EventListener
     public void handEvent(MyApplicationEvent myApplicationEvent) {
         System.out.println(myApplicationEvent.getSource());

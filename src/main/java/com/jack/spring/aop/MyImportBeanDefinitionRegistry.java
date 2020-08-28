@@ -19,5 +19,9 @@ public class MyImportBeanDefinitionRegistry implements ImportBeanDefinitionRegis
         RootBeanDefinition myAspcetj = new RootBeanDefinition();
         myAspcetj.setBeanClass(MyAspectj.class);
         registry.registerBeanDefinition("myAspcetj", myAspcetj);
+
+        RootBeanDefinition bizImpl = new RootBeanDefinition();
+        bizImpl.setBeanClass(BizImpl.class);
+        registry.registerBeanDefinition("bizImpl", bizImpl);
     }
 }

@@ -6,6 +6,7 @@ import com.jack.spring.transaction.DBConfig;
 import com.jack.spring.transaction.DataSourceBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @Import({DBConfig.class, PhoneFactoryBean.class, MyImportBeanDefinitionRegistry.class})
 //@Import({PhoneFactoryBean.class, MyImportBeanDefinitionRegistry.class})
 @EnableTransactionManagement
+@EnableAsync
 public class MyConfig {
     @Bean
     public Car createCar() {

@@ -15,10 +15,19 @@ public class ServiceImpl implements Service {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private Service2 service2;
+
     @Override
     public void doInsert() {
         //mock insert
-        jdbcTemplate.update("insert into a(name, code) values('1', '1')");
-        System.out.println(1/0);
+        jdbcTemplate.update("insert into a(name, code) values('s1', 's1')");
+        //try {
+            service2.doInsert();
+        //} catch (Exception e) {
+            //System.out.println(e);
+        //}
+
+        System.out.println(1/1);
     }
 }
