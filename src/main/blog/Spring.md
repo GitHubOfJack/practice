@@ -541,14 +541,15 @@ finishBeanFactoryInitialization流程：
                 2.3 配置headless属性
                 2.4 获取SpringApplicationRunListeners-EventPublishingRunListener（在该对象的构造方法中会添加1.3中的监听器）（此处的对象内部包含一个SimpleApplicationEventMulticaster）
                 2.5 2.4的的监听器starting方法--调用initMulticaster.multicastEvent(new ApplicationStratingEvent());
-                2.6 准备环境变量 prepareEnvironment-把参数赋给环境 调用2.4的对象发布ApplicationEnvironmentPreparedEvent事件
+                2.6 准备环境变量 prepareEnvironment-把参数赋给环境 调用2.4的对象发布ApplicationEnvironmentPreparedEvent事件-此处会调用监听器完成application-x.properties文件的读取工作
                 2.7 打印banner printBanner()
                 2.8 创建容器上下文  createApplicationContext()--根据不同的容器类型生成对应的applicationContext对象  AnnotationConfigApplicationContext AnnotationConfigServletWebServerApplicationContext(生成此对象时，在构造方法中会注册5个常用的beandefinition,跟SPRING容器启动流程中的this()构造方法一致)
                 2.9 创建异常报告器  SpringBootExceptionReporter.class
                 2.10 准备容器 prepareContext()  
                     给applicationContext设置属性，environment\resourceLoader等 
-                    此处会调用1.2获取的初始化器进行初始化 
-                    同时会用2.4的对象发布ApplicationContextInitializedEvent事件
+                    此处会调用1.2获取的初始化器进行初始化
+                    调用2.4的对象发布ApplicationContextInitializedEvent事件
+                    获取一个ConfigurableListableBeanFactory对象
                     加载SpringBoot的启动类---通过AnnotatedBeanDefinitionReader把启动类的定义信息加入BeanFactory
                     调用2.4的对象发布ApplicationPreparedEvent事件
                 2.11 刷新容器 refreshContext()
