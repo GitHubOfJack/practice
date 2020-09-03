@@ -670,7 +670,7 @@ finishBeanFactoryInitialization流程：
     refresh.onRefresh()
     ServletWebServerApplicationContext.onRefresh();
         createWebServer();
-            1 根据容器类型获取容器工厂
+            1 根据容器类型获取容器工厂-tomcat\jetty
             ServletWebServerFactory factory = getWebServerFactory();
             2 通过工厂方法获取相应的容器
             this.webServer = factory.getWebServer(getSelfInitializer());
@@ -686,7 +686,21 @@ finishBeanFactoryInitialization流程：
             getWebServerFactory()流程
                 String[] beanNames = getBeanFactory().getBeanNamesForType(ServletWebServerFactory.class);
                 return getBeanFactory().getBean(beanNames[0], ServletWebServerFactory.class);
-            factory.getWebServer(getSelfInitializer())流程
+            factory.getWebServer(getSelfInitializer())
+                其中getSelfInitializer()会返回一个匿名内部类，该类会实现ServletContextInitializer接口，
+                调用该匿名类的onStartup(ServletContext servletContext)时候，会调用
+                for (ServletContextInitializer beans : getServletContextInitializerBeans()) {
+                			beans.onStartup(servletContext);
+                }循环IOC容器中所有的ServletContextInitializer对象，调用onStartup方法
+            
+                getWebServer流程
+                    1 Tomcat tomcat = new Tomcat();
+                    2 设置baseDir
+                    3 创建Context容器-engine\host\context\wrapper
+                    4 context容器addServletContainerInitialize会Map<ServletContainerInitializer,Set<Class<?>>>集合中添加对象-tomcatStarter，此处的TomcatStarter starter = new TomcatStarter(initializers);
+                    5 调用tomcat.start
+                        startInternal()->StandardContext容器的startInternal()方法中会循环getSelfInitializer()会返回一个匿名内部类，调用onstartup方法
+                        
                 
         
 Spring注解分类
