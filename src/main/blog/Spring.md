@@ -666,7 +666,28 @@ finishBeanFactoryInitialization流程：
             @Import(AutoConfigurationImportSelector.class)
         @ComponentScan
         
-        
+10 spring-boot启动tomcat流程
+    refresh.onRefresh()
+    ServletWebServerApplicationContext.onRefresh();
+        createWebServer();
+            1 根据容器类型获取容器工厂
+            ServletWebServerFactory factory = getWebServerFactory();
+            2 通过工厂方法获取相应的容器
+            this.webServer = factory.getWebServer(getSelfInitializer());
+            3 注册优雅关闭对象
+            getBeanFactory().registerSingleton("webServerGracefulShutdown",
+                    new WebServerGracefulShutdownLifecycle(this.webServer));
+            4 注册开启关闭对象
+            getBeanFactory().registerSingleton("webServerStartStop",
+                    new WebServerStartStopLifecycle(this, this.webServer));
+            5 初始化参数配置
+            initPropertySources();
+            
+            getWebServerFactory()流程
+                String[] beanNames = getBeanFactory().getBeanNamesForType(ServletWebServerFactory.class);
+                return getBeanFactory().getBean(beanNames[0], ServletWebServerFactory.class);
+            factory.getWebServer(getSelfInitializer())流程
+                
         
 Spring注解分类
     @Component
