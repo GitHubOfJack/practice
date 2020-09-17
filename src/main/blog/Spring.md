@@ -590,6 +590,10 @@ SpringApplication.run(PracticeApplication.class, args);
                     new SimpleApplicationEventMulticaster()
                 }
             9 onRefresh()
+                spring.factory文件中EnableAutoConfiguration=DispatcherServletAutoConfiguration ServletWebServerFactoryAutoConfiguration
+                DispatcherServletAutoConfiguration内部有两个加了@Configuration静态类，这两个类里面有@Bean分别生成了DispatcherServletRegistrationBean（ServletContextInitializer）和DispatcherServlet
+                ServletWebServerFactoryAutoConfiguration中@Import（EmbeddedTomcat.class,EmbeddedJetty.class,EmbeddedUndertow.class）
+                EmbeddedTomcat中@ConditionalOnClass({ Servlet.class, Tomcat.class, UpgradeProtocol.class })，会创建一个TomcatServletWebServerFactory
                 tomcat启动过程
                 ServletWebServerApplicationContext.onRefresh();
                 createWebServer();
@@ -620,9 +624,10 @@ SpringApplication.run(PracticeApplication.class, args);
                             1 Tomcat tomcat = new Tomcat();
                             2 设置baseDir
                             3 创建Context容器-engine\host\context\wrapper
-                            4 context容器addServletContainerInitialize会Map<ServletContainerInitializer,Set<Class<?>>>集合中添加对象-tomcatStarter，此处的TomcatStarter starter = new TomcatStarter(initializers);
+                            4 context容器中Map<ServletContainerInitializer,Set<Class<?>>>集合中添加对象-tomcatStarter，此处的TomcatStarter starter = new TomcatStarter(initializers); TomcatStarter中有个属性ServletContextInitializer[]
                             5 调用tomcat.start
                                 startInternal()->StandardContext容器的startInternal()方法中会循环getSelfInitializer()会返回一个匿名内部类，调用onstartup方法
+                                此时会先调用TomcatStarter的onStartup方法，在该方法中调用DispatcherServletRegistrationBean的onStartup方法，该方法中会把DispatcherServlet加入到ServletContext容器中
             10 registerListeners()
                 1 如果有加载好的ApplicationListener，则加入到ApplicationEventMulticaster
                 2 获取所有的ApplicationListener类，加入到ApplicationEventMulticaster
