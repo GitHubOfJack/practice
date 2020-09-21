@@ -318,7 +318,7 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
                         if (status.isDebug()) {
                             logger.debug("Rolling back transaction to savepoint");
                         }
-                        status.rollbackToHeldSavepoint();
+                        status.rollbackToHeldSavepoint();//回滚之后会释放掉保存点
                     }
                     else if (status.isNewTransaction()) {
                         if (status.isDebug()) {
