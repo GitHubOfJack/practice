@@ -9,6 +9,7 @@ import com.jack.spring.scan.TestA;
 import com.jack.spring.scan.TestB;
 import com.jack.spring.transaction.DataSourceBean;
 import com.jack.spring.transaction.Service;
+import com.jack.spring.transaction.Service2;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.xml.XmlBeanFactory;
 import org.springframework.context.ApplicationContext;
@@ -71,6 +72,9 @@ public class SpringTest {
 
         Service bean5 = applicationContext.getBean(Service.class);
         bean5.doInsert();
+
+        Service2 bean7 = applicationContext.getBean(Service2.class);
+        bean7.doTransactionTest();
 
         DataSource bean6 = applicationContext.getBean(DataSource.class);
         System.out.println(bean6);

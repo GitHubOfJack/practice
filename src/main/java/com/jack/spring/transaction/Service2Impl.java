@@ -17,4 +17,8 @@ public class Service2Impl implements Service2 {
         jdbcTemplate.update("insert into a(name, code) values('s2', 's2')");
         System.out.println(1/1);
     }
+
+    public void doTransactionTest() {
+        System.out.println("what");
+    }
 }

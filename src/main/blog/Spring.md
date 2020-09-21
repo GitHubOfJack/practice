@@ -145,7 +145,7 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
 
 ​		->AutoProxyRegistrar ProxyTransactionManagementConfiguration
             AutoProxyRegistrar implements ImportBeanDefinitionRegistrar -> 注册了一个internalAutoProxyCreator=InfrastructureAdvisorAutoProxyCreator
-            ProxyTransactionManagementConfiguration是一个@Configuration -> BeanFactoryTransactionAttributeSourceAdvisor\TransactionAttributeSource\TransactionInterceptor三个bean
+            ProxyTransactionManagementConfiguration是一个@Configuration -> BeanFactoryTransactionAttributeSourceAdvisor\TransactionAttributeSource(此处的构造器会注入一个SpringTransactionAnnotationParser)\TransactionInterceptor三个bean
             InfrastructureAdvisorAutoProxyCreator extends InstantiationAwareBeanPostProcessor
             执行postProcessAfterInitialization的流程：
                         wrapIfNecessary->
@@ -165,8 +165,9 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
                 和AOP的执行流程是一致的
             TransactionInterceptor.invoke(mi);
                 invokeWithinTransaction() {
-                    //如果非事务方法，则txAttr为NULL
+                    //此处获取的TransactionAttributeSource就是注册的TransactionAttributeSource的单例对象
                     TransactionAttributeSource tas = getTransactionAttributeSource();
+                    //如果非事务方法，则txAttr为NULL，会从方法、类、接口类、接口方法上寻找TransactionAttribute
                     TransactionAttribute txAttr = (tas != null ? tas.getTransactionAttribute(method, targetClass) : null);
                     //如果注解上指定了transactionManager则使用该tm,如果拦截器有tm，如果没有则取TransactionManager类型的tm;
                     TransactionManager tm = determineTransactionManager(txAttr);
