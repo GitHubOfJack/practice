@@ -159,7 +159,7 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
                                 2.3 proxyFactory.getProxy(getProxyClassLoader());
                                     2.3.1 JdkDynamicAopProxy CglibAopProxy
             JdkDynamicAopProxy 
-            	List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
+            	List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);//此处会获取BeanFactoryTransactionAttributeSourceAdvisor中的Advice，即TransactionInterceptor
                 MethodInvocation invocation = new ReflectiveMethodInvocation(proxy, target, method, args, targetClass, chain);
                 invocation.proceed();
                 和AOP的执行流程是一致的
@@ -243,6 +243,7 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
                 doGetTransaction() {
                     DataSourceTransactionObject txObject = new DataSourceTransactionObject();
                     txObject.setSavepointAllowed(isNestedTransactionAllowed());
+                    //从ThreadLocal<Map<Object, Object>> resources获取当前线程的数据库链接
                     ConnectionHolder conHolder =
                             (ConnectionHolder) TransactionSynchronizationManager.getResource(obtainDataSource());
                     txObject.setConnectionHolder(conHolder, false);
