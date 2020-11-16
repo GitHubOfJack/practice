@@ -27,11 +27,11 @@ import java.util.concurrent.locks.ReentrantLock;
  * ​	ReentrantReadWriteLock
  * */
 public class MyLock {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         lock();
     }
 
-    public static void lock() {
+    public static void lock() throws InterruptedException {
 
         Object object = new Object();
         synchronized (object) {
@@ -42,6 +42,51 @@ public class MyLock {
         Condition condition = lock.newCondition();
         Condition condition1 = lock.newCondition();
 
+        new Thread(() -> {
+            lock.lock();
+            try{
+                if (true) {
+                    condition.await();
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                lock.unlock();
+            }
+        }).start();
+
+        new Thread(() -> {
+            lock.lock();
+            try{
+                if (true) {
+                    condition1.await();
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                lock.unlock();
+            }
+        }).start();
+
+        TimeUnit.SECONDS.sleep(1);
+
+        new Thread(() -> {
+            lock.lock();
+            try{
+                condition.signal();
+            } finally {
+                lock.unlock();
+            }
+        }).start();
+
+        new Thread(() -> {
+            lock.lock();
+            try{
+                condition1.signal();
+            } finally {
+                lock.unlock();
+            }
+        }).start();
 
         /*for (int i=0; i<10; i++) {
             final int j = i;
