@@ -1,3 +1,17 @@
+类加载过程：
+
+1 类变量初始化 ：准备阶段赋默认值，初始化阶段执行clinit方法（两种赋值方式：第一显示赋值，第二静态代码块赋值，这两种方法最终会变成clinit方法）
+
+2 成员变量初始化:(new 执行init方法 栈指针指向，会触发DCL问题)（三种赋值方式：第一显示赋值，第二代码块赋值，第三构造器赋值，这三种方法最终会变成init方法）
+
+
+
+1 指针碰撞（CMS外的垃圾收集器使用）
+
+2 空闲列表（CMS）
+
+
+
 1 jvm分为四个部分：运行时数据区，类加载系统和字节码文件，垃圾回收，jvm调优
 
 
@@ -62,9 +76,99 @@ Full GC:老年代满了、方法区满了、Eden区满了之后，不满足空�
 
 常量：数值类型的常量池（字符串类型的常量池1.6位于方法区，1.7迁移到堆中）
 
-静态变量：也位于方法区（final修饰的static变量（非引用类型）是常量，在编译期间就直接赋值）
+​	常量池包含：字面量和符号引用（类和接口的全限定名、字段的名称和描述赋、方法的名称和描述赋），运行时常量池：字面量和直接引用，1.7之后字符串常量池和类变量都在堆中
+
+​	每个类都对应一个运行时常量池
+
+静态变量：也位于方法区（final修饰的static变量（非引用类型）是常量，在编译期间就直接赋值）,这里说的静态变量是=号左边的值。（思考下，静态变量、实例变量、局部变量存储的位置-这三个均指=左边的值，=右边的值均是在堆中）静态变量在1.7之后是跟class对象在一起的
 
 2.5 字符串常量池：
+
+
+
+对象初始化的方式：
+
+1 new(xxxBuilder\xxxFactory)
+
+2 clone(深copy和浅copy)
+
+3 class.newInstance(只能调用空参构造方法、public权限)
+
+4 Constructor.newInstance（无限制）
+
+5 反序列化（文件、网络）
+
+
+
+创建对象的步骤
+
+1 判断对象的类信息是否加载：加载、链接（验证、准备、解析）、初始化
+
+2 为对象分配内存：内存规整-指针碰撞(非cms)、内存不规整-空闲列表（cms）
+
+3 处理并发安全问题：一个是cas，一个是TLAB
+
+4 初始化分配到的空间-给实例变量赋默认值
+
+5 设置对象头
+
+6 执行init方法进行初始化
+
+
+
+对象的内存布局
+
+对象头：Mark Word（8个字节，hashCode\GC信息\锁信息）和Klass pointer(开启指针压缩4个字节)，如果是数组，还会记录数组的长度
+
+实例数据：（Interger 4个字节，Long、Double8个字节、引用类型4个字节）
+
+对其填充：至少是8的倍数
+
+
+
+对象访问的方式：
+
+句柄访问：句柄池
+
+直接指针：
+
+
+
+垃圾回收：
+
+对象标记阶段算法：引用计数和根搜索算法，jvm采用根搜索算法，那些可以作为gc-roots,在标记阶段需要stw，并且需要safepoint，对象是垃圾是在对象头中标示，在对象被标示为垃圾之后，还可以调用finalize()（只会调用一次）方法复活（放入finalize-queue队列中，被低优先级的finalizer线程处理）。
+
+对象被回收经历两个阶段：第一个是gc-roots找不到该对象，第二个是finalize()方法
+
+gc和对象头的关系（标记成11？）
+
+垃圾标记算法：
+
+1 引用计数算法：对象内部存储一个计数的属性，优点：效率高，缺点：无法解决循环引用问题
+
+2 根搜索算法：（jvm采用的）
+
+那些可以作为gc-roots:1 jvm栈局部变量表中指针指向的对象 2 类的静态变量指向的对象 3 本地方法栈中指针指向的对象 4 sync的对象
+
+5 系统类：rt.jar中的对象 6 没有结束的线程 7 常量指向的对象(如果是新生代垃圾回收，老年代的对象也可以是gc-roots？此处老年代有大量对象，该如何处理？)
+
+根搜索算法：在多线程环境下会存在问题，需要stw，但是stw需要safePoint，gc-roots太多，需要oopmap
+
+
+
+引入 SafePoint 的原因不是因为 HotSpot 采用了可达性分析，而是因为使用了准确式垃圾收集算法和 OopMap 结构，准确式GC要求jvm必须清楚的知道内存中哪些位置存放了对象引用，因此 HotSpot 采用了一种策略，那就是在外部用一数据结构来记录对象引用的位置，OopMap 就是这样的一个数据结构。但是，程序运行期间，很多指令都是有可能修改引用关系的，即要修改OopMap。如果碰到就修改，那代价也太大了，故而引入了 SafePoint，只在 SafePoint 才会对 OopMap 做一个统一的跟新。这也使得，只有 SafePoint 处 OopMap 是一定准确的，因此只能在 SafePoint 处进行 GC 行为。
+
+至于 SafeRegion，理解起来很简单。如果一段代码中，没有任何指令会去修改引用关系，那么这段代码运行期间任何时刻进行 GC 行为都是安全地。之所以要引入 SafeRegion，如果线程长期处于 Sleep 状态，而无法到 SafePoint，这使得 GC 无法回收该线程在堆中产生的垃圾。而有了 SafeRegion ，这种情况就迎刃而解了。
+
+
+
+安全点的选择不能太少，否则GC等待时间太长；也不能太多，否则会增大运行负荷
+
+
+
+根搜索算法：oopmap\safePoint\card table\Rset
+
+对象被垃圾收集器回收之前，还可以调用finalize()方法，进行资源的释放
 
 
 
@@ -81,6 +185,52 @@ astore_1 （把操作数栈中的数据存储到局部变量表的第二个位�
 return （方法返回）
 
 
+
+执行引擎：
+
+1 解释器：直接运行，速度慢
+
+2 jit编译器：需要编译时间，速度快
+
+高级语言->汇编语言->机器指令（机器码）
+
+3 垃圾收集器
+
+
+
+String相关问题：
+
+两种创建方式
+
+String s = "a";
+
+String s = new String("s");
+
+String是final的，1.8底层是final的char[], 1.9底层是final的byte[]. (思考为什么)
+
+字符串常量池中不能存储相同的数据，底层是一个hashTable,1.6中大小是1009,1.7之后60013，1009是最小值，可以使用-XX:StringTableSize设置大小
+
+8中基本类型和String类型都有常量池
+
+String常量池为什么要移动：1 永久代大小比较小 2 垃圾回收频率低
+
+字符串拼接操作：
+
+1 常量（final字符串的变量是常量）与常量的拼接-在编译期优化。只要一个其中一个是变量，结果就在堆中
+
+2 常量池中不会存在相同内容的常量
+
+3 变量拼接的原理是StringBuilder
+
+4 调用intern()方法，则将字符串加入常量池，并返回对象的地址
+
+变量字符串+操作，底层的原理是StringBuilder.appand,StringBuilder.toString()->new String();
+
+new String("abc")有几个对象：看字节码，一个是new关键字，一个是ldc
+
+new String("a") + new String("b")有几个对象：一个stringbuilder,一个string,一个a，一个string,一个b，一个toString方法返回new String()，又创建了一个String对象。
+
+String.intern()方法在1.7之后，随着字符串常量池的改变而改变。
 
 
 
@@ -126,6 +276,12 @@ jvisualvm(图形工具-不能用于生产)
 
 -verbose:class
 
+-XX:+TraceClassLoading
+
+-XX:+TraceClassUnLoading
+
+-XX:+PrintStringTableStatistics
+
 -Xms
 
 -Xmx
@@ -133,6 +289,8 @@ jvisualvm(图形工具-不能用于生产)
 -Xmn
 
 -Xss
+
+-XX:StringTableSize
 
 -XX:NewRatio
 
@@ -176,4 +334,4 @@ String res  = JSON.toJSONString(srcRes, config);
 
 导致的问题:jvm报错OOM:metaspce
 
-分析思路：元空间溢出，基本可以锁定是加载了过多的类，但是项目已经运行了一段时间，应该是某个功能动态生成了很多类，所以在启动命令里面加了-verbose:class，程序启动之后在catalina.out文件中发现生成了大量的com.alibaba.fastjson.serializer.ASMSerializer,该类是利用asm技术生成的，每次new就生成一个，最终导致内存溢出。解决办法：单例一个对象
+分析思路：元空间溢出，基本可以锁定是加载了过多的类，但是项目已经运行了一段时间，应该是某个功能动态生成了很多类，所以在启动命令里面加了-verbose:class(此处不能使用jinfo动态增加-XX:+TraceClassLoading，这个值不能动态改变)，程序启动之后在catalina.out文件中发现生成了大量的com.alibaba.fastjson.serializer.ASMSerializer,该类是利用asm技术生成的，每次new就生成一个，最终导致内存溢出。解决办法：单例一个对象

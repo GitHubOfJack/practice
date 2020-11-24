@@ -38,4 +38,8 @@ public class StringPractice {
         System.out.println(StringPractice.i);
     }
 
+    public void addString() {
+        String s = new String("a") + new String("b");
+    }
+
 }
