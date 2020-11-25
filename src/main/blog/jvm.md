@@ -172,6 +172,30 @@ gc和对象头的关系（标记成11？）
 
 
 
+1 serial&serial old垃圾收集器
+
+![serial](/Users/a0003/资料/分享/图片/serial.png)
+
+
+
+2 parnew-serial
+
+![parnew-serialold](/Users/a0003/资料/分享/图片/parnew-serialold.png)
+
+3 parallel scavenge-parallel old
+
+![parallelscavenge-parallelold](/Users/a0003/资料/分享/图片/parallelscavenge-parallelold.png)
+
+4 cms
+
+![cms](/Users/a0003/资料/分享/图片/cms.png)
+
+5 g1
+
+![g1](/Users/a0003/资料/分享/图片/g1.png)
+
+
+
 3 Object obj = new Object();底层的字节码指令
 
 new #11 <java/lang/Object> (在内存中给对象分配空间，并把对象的地址入栈)

@@ -11,6 +11,9 @@ package com.jack;
  * volatile满足两种，可见性和有序性，但是不满足原子性
  * volatile之所以能满足这两种特性底层是通过memory barrier实现的。
  * memory barrier禁止重排序和强制读取主存数据
+ *
+ *
+ * 内存屏障和读写屏障
  * */
 public class VolatilePractice {
     public boolean isFlag() {
