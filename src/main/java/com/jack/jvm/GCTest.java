@@ -58,13 +58,26 @@ package com.jack.jvm;
  *          6 分区收集算法：
  * 2 垃圾收集器：
  *      1 serial和serial old
- *          -XX:UseSerialGC
+ *          -XX:+UseSerialGC
  *          适用于单核小内存的场景
  *          采用复制和标记-压缩算法
- *      2 parnew
- *      3 parallel scavenge
- *      5 cms
- *      6 parallel old
+ *      2 parNew
+ *          -XX:+UseParNewGC
+ *          serial的多线程版本,用于新生代,采用复制算法
+ *      3 parallel scavenge和parallel old
+ *          -XX:+UseParallelGC
+ *          -XX:ParallelGCThreads(默认是cup的核数)
+ *          -XX:MaxGCPauseMillis
+ *          -XX:GCTimeRatio
+ *          -XX:+UseAdaptiveSizePolicy
+ *          与parNew的区别
+ *              1 吞吐量优先的垃圾收集器
+ *              2 有自适应策略
+ *      4 cms
+ *          -XX:+UseConcMarkSweepGC
+ *          用于老年代垃圾回收，采用标记-清除算法，会产生内存碎片，并发的垃圾回收器，
+ *          不能等到内存满了之后再进行gc，存在回收失败的情况（concurrent mode failure），需要使用serial old作为后备方式
+ *          低延迟的垃圾收集器
  *      7 G1
  *      8 ZGC
  *
@@ -74,7 +87,7 @@ package com.jack.jvm;
  *      3 parallel scavenge -> serial old
  *      4 serial->cms
  *      5 parNew->cms->serial old
- *      6 parallel scavenge -> parallel old（1.8默认垃圾收集器）
+ *      6 parallel scavenge -> parallel old（1.7 1.8默认垃圾收集器）
  *      7 g1(1.9默认垃圾收集器)
  * 3 垃圾收集相关概念：
  *      oopMap
