@@ -58,4 +58,7 @@ package com.jack.jvm;
  * jmap
  */
 public class HeapTest {
+    public static void main(String[] args) {
+        System.out.println("111");
+    }
 }
