@@ -57,14 +57,15 @@ package com.jack.jvm;
  *          5 增量收集算法：
  *          6 分区收集算法：
  * 2 垃圾收集器：
- *      1 serial和serial old
+ *      1 seria（GCDetails中的信息是：def new generation）和serial old（GCDetails中的信息是：tenured generation）
  *          -XX:+UseSerialGC
  *          适用于单核小内存的场景
  *          采用复制和标记-压缩算法
- *      2 parNew
+ *      2 parNew(par new generation)
  *          -XX:+UseParNewGC
+ *          -XX:ParallelGCThreads
  *          serial的多线程版本,用于新生代,采用复制算法
- *      3 parallel scavenge和parallel old
+ *      3 parallel scavenge(GCDetails中的信息是：PSYoungGen)和parallel old(GCDetails中的信息是：ParOldGen)
  *          -XX:+UseParallelGC
  *          -XX:ParallelGCThreads(默认是cup的核数)
  *          -XX:MaxGCPauseMillis
@@ -73,12 +74,47 @@ package com.jack.jvm;
  *          与parNew的区别
  *              1 吞吐量优先的垃圾收集器
  *              2 有自适应策略
- *      4 cms
+ *      4 cms(GCDetails中的信息是：concurrent mark-sweep generation)
  *          -XX:+UseConcMarkSweepGC
+ *          可以调整发生垃圾回收堆空间阈值
+ *          -XX:UseCMSCompactAtFullCollection
+ *          -XX:CMSFullGCsBeforeCompaction
+ *          -XX:ConcGCThreads
+ *
  *          用于老年代垃圾回收，采用标记-清除算法，会产生内存碎片，并发的垃圾回收器，
- *          不能等到内存满了之后再进行gc，存在回收失败的情况（concurrent mode failure），需要使用serial old作为后备方式
+ *          不能等到内存满了之后再进行gc,，存在回收失败的情况（concurrent mode failure），需要使用serial old作为后备方式
  *          低延迟的垃圾收集器
- *      7 G1
+ *
+ *          1 初始标记(STW)
+ *          2 并发标记
+ *          3 最终标记(STW，采用增量更新算法-三色标记)
+ *          4 并发清除
+ *      7 G1(GCDetails中的信息是：garbage-first heap)
+ *          -XX:UseG1GC
+ *          -XX:G1HeapRegionSize(1M-32M,2的N次幂),Region数量在2048左右
+ *          -XX:MaxGCPauseMillis
+ *          把堆分成大小相同的N个Region,每个Region都可以是Eden,Survivor,old区，还有一个大对象区，只要超过Region一半都属于大对象。
+ *          g1把region当成单次回收的最小单元，每次回收都是region的整数倍，G1在后台维护一个优先级列表，根据设置的最大停顿时间，默认200毫秒，
+ *          优先处理回收价值最大的Region
+ *
+ *          半衰平均值-最近的参考价值越大
+ *
+ *          新生代的占比是从5%-60%
+ *
+ *          缺点是：需要的内存空间更大(RSet需要占用很大的内存空间)，在小内存上性能可能还不如cms（均衡点在6-8G之间）
+ *
+ *          YGC（整个过程STW）：
+ *              1 扫描GC-ROOTS（包含RSet中的数据）
+ *              2 读取dirty card queue中的数据，更新RSet(dirty card queue是每个赋值操作都会通过写屏障插入记录,每个Region都会读取queue中的数据更新RSet)
+ *              3 复制算法收集内存(Collection set就是待回收的Region集合，空闲的Region会被放入到linked list中供JVM使用)
+ *          Mixed GC(YGC和部分old区Region的回收)---当内存使用默认超过45%的时候触发并发标记然后执行Mixed GC,Mixed GC默认会进行8次，
+ *              即每次Mixed GC只会回收并发标记的1/8的老年代Region,但是默认当内存使用情况小于10%的时候就结束Mixed GC，每个Region只有垃圾超过65%才会进行回收
+ *              1 初始标记(STW,会触发一次YGC)
+ *              2 并发标记
+ *              3 重新标记（STW，采用原始快照的方式-三色标记）
+ *              4 筛选回收(STW，通过上面的流程已经能筛选出性价比最高的Region，然后设定的最大停顿时间，进行相应回收)
+ *
+ *
  *      8 ZGC
  *
  *      组合方式：

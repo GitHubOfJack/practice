@@ -42,10 +42,26 @@ package com.jack.jvm;
  * -XX:SurvivorRati（Eden与Survivor的比例，默认是8，但是本地测试一般是6，为什么？）
  * -XX:+UseTLAB(开启TLAB，默认情况下是eden的1%，可以通过参数设计TLAB的大小)
  * -XX:MaxTenuringThreshold(设置晋升到老年代的阈值，默认是15，最大也只能是15？思考为什么？)
- * -XX:PrintGCDetails
  * -XX:HandlePromotionFailure（空间担保策略，默认是开启）
  * -XX:PrintFlagsInitial（打印参数初始值）
  * -XX:PrintFlagsFinal（打印参数最终值）
+ * -XX:PrintGC        -Xlog: gc(打印GC基本信息)
+ * -XX:PrintGCDetails -Xlog: gc*(打印GC详情信息)
+ * -XX:PrintHeapAtGC  -Xlog: gc+heap=debug（查看GC前后方法区、堆的可用容量变化）
+ * -XX:PrintGCApplicationConcurrentTime -XX:PrintGCApplicationStoppedTime -Xlog: safepoint(查看GC过程中用户并发时间和停顿时间)
+ * -XX:PrintAdaptiveSizePolicy(自动设置堆空间各分代区域大小、收集目标等内容。从parallel收集器开始)
+ * -XX:PrintTenuringDistribution -Xlog: gc+age=trace(收集过后，存活对象的年龄分布信息)
+ * 生产GC日志配置
+ * -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:/home/GCEASY/gc.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=20M
+ *
+ * -XX:+PrintGCDetails
+ * -XX:+PrintGCDateStamps
+ * -Xloggc:/home/GCEASY/gc-%t.log（当JVM重启以后，会生成新的日志文件，新的日志也不会覆盖老的日志，只需要在日志文件名中添加%t的后缀即可，%t会给文件名添加时间戳后缀，格式是YYYY-MM-DD_HH-MM-SS）
+ *
+ * -XX:+HeapDumpOnOutOfMemoryError
+ *
+ * java -XX:PrintFlagsFinal | more
+ * java -XX:PrintFlagsFinal | wc -l
  *
  * jps
  * jinfo -flag flagName pid
@@ -59,6 +75,10 @@ package com.jack.jvm;
  */
 public class HeapTest {
     public static void main(String[] args) {
-        System.out.println("111");
+        int[] iarray = new int[2];
+        iarray[0] = 0;
+        iarray[1] = 1;
+
+        int j = iarray[10];
     }
 }

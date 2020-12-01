@@ -342,6 +342,165 @@ jvisualvm(图形工具-不能用于生产)
 
 
 
+Parallel常用参数：
+
+-XX:SurvivorRatio
+
+-XX:PreTenureSizeThreshold
+
+-XX:MaxTenuringThreshold
+
+-XX:ParallelGCThreads(并行收集线程数一般和CPU核数一致)
+
+-XX:+UseAdaptiveSizePolicy
+
+
+
+CMS常用参数:
+
+-XX:+UseConcMarkSweepGC
+
+-XX:ParallelsGCThreads
+
+-XX:CMSInitiatingOccpancyFranction(使用多少比例的老年代之后开始CMS收集，默认是68%，如果频繁发生Serialold应该调小这个值)
+
+-XX:UseCMSCompactAtFullCollection
+ -XX:CMSFullGCsBeforeCompaction
+ -XX:ConcGCThreads
+
+-XX:MaxGCPauseMillis
+-XX:GCTimeRatio
+
+
+
+G1常用参数:
+
+-XX:+UseG1GC
+
+-XX:MaxGCPauseMillis
+
+-XX:G1HeapRegionSize(1M-32M,2的N次幂),Region数量在2048左右
+
+-XX:G1NewSizePercent(默认是5%)
+
+-XX:G1MaxNewSizePercent(新生代最大比例60%)
+
+-XX:GCTimeRatio
+
+-XX:ConcGCThreads
+
+-XX:InitiatingHeapOccupancyPercent
+
+
+
+
+
+JVM调优
+
+1 从需要出发开始规划（比如访问量是多少，需要多大内存空间，多少CPU，使用什么垃圾回收器）
+
+2 优化JVM运行环境（慢、卡顿现象）
+
+3 解决OOM问题
+
+
+
+如果别人要问怎么选择最合适的垃圾收集策略：具体问题，具体分析。压力测试，调试参数
+
+
+
+一般是运维人员通知CPU或者内存使用过高
+
+
+
+jps定位java进程
+
+jstack pid |more(查看死锁，查看那个线程CUP占用比较高)
+
+jstack定位具体线程，重点关注Waiting Bolcked
+
+Waiting on <0X111111> (a java.lang.Object)
+
+假如有一个进程中有100个线程，很多线程都在waiting on xxx,一定找到那个线程持有这个锁
+
+怎么找？搜索jstack dump信息，找xxx,看那个线程持有这个锁Running
+
+面试官问线上如何定位问题：不能说使用图形界面（公司自己研发的可以说），最好说命令行或者arthas
+
+图形化界面可以说是在测试环境或者压测环境使用
+
+
+
+jstat -gc
+
+jmap -histo 4566|head -20(查看JVM中使用最多的20个对象)--生产不能随便执行
+
+jmap -dump:format=b,file=xx pid:线程系统不能执行
+
+1 设定了heapdump，不专业，因为会有运维预警
+
+2 很多服务器，高可用，停了这个不影响
+
+3 压力测试环境可以说
+
+
+
+1 系统CPU经常100%，如何调优？
+
+CPU100%一定是有线程占用系统资源
+
+1 找出进程CPU使用最高的top
+
+2 该进程中那个线程使用CPU最高 top -Hp
+
+3 到处该线程的堆栈信息jstack
+
+4 查找那个线程方法消耗时间jstack
+
+5 工作线程占比高|垃圾回收线程占比高
+
+
+
+2 系统内存飙高，如何查找问题
+
+1 到处堆内存jmap
+
+2 分析ivisualvm\mat\jprofiler
+
+
+
+3 如果生产服务器频繁FGC如何定位解决
+
+
+
+jps -mvl
+
+jinfo pid查看JVM信息（可以查看启动参数）
+
+jinfo -flag xx pid
+
+
+
+arthas:
+
+1 dashboard(可以查看线程占用CPU的情况，分析是业务线程或者是垃圾回收线程占用比例较高（可以使用top+jps+jstack定位），具体处理，可以查看堆的使用详情)
+
+2 jvm
+
+3 thread(查看所有的线程)
+
+4 thread xxx(threadid)
+
+5 thread -b查看死锁
+
+6 heapdump--生产不能随便执行
+
+
+
+
+
+
+
 
 
 问题一：FASTJSON使用不当导致内存溢出问题
