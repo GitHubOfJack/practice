@@ -60,6 +60,10 @@ package com.jack.jvm;
  *
  * -XX:+HeapDumpOnOutOfMemoryError
  *
+ * -XX:TraceClassLoading
+ *
+ * -XX:PretenureSizeThreshold(大对象大小，只在serial\parnew垃圾收集器中起作用)
+ *
  * java -XX:PrintFlagsFinal | more
  * java -XX:PrintFlagsFinal | wc -l
  *

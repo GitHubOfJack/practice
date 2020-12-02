@@ -12,8 +12,13 @@ import com.jack.Person;
  *
  * ExtClassLoader extends URLClassLoader是Launcher静态内部类
  *
+ * class对象中有指针指向方法区的类元数据，也有指针指向对应的classLoader对象
  *
- * 加载：把文件从某个地方加载进JVM中（本地、JAR、网络、数据库等等）
+ * classLoader对象中有该Loader加载过的所有Class信息
+ *
+ *
+ *
+ * 加载：(会生成堆中的Class对象)把文件从某个地方加载进JVM中（本地、JAR、网络、数据库等等）
  * 如果要对class内容进行加解密，在此处进行，重写findClass方法，数组类型不是通过classloader加载的，
  * 是JVM直接在内存中动态构建的，但是数组相关类型是通过classloader加载的
  *
@@ -51,6 +56,8 @@ import com.jack.Person;
  *      clinit方法是由编译器生成的，由所有类变量的赋值动作和静态代码块中的语句合并产生。(父类的clinit方法在子类的clinit方法之前调用)
  *      clinit方法不是必须的，没有赋值动作和静态代码块，则没有clinit方法。类执行clinit方法时，不会先执行接口的clinit方法（如果有的话）
  *      只有当接口变量被使用时才会调用.jvm必须保证一个类的clinit方法在多线程环境中被正确的加锁同步。而且clinit只会被jvm加载一次。
+ *
+ *
  *
  *
  * */
