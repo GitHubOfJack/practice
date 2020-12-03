@@ -1,7 +1,5 @@
 package com.jack.juc;
 
-import org.checkerframework.checker.units.qual.A;
-
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,17 +19,23 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 如果竞争很激烈或者业务逻辑执行时间很长，采用自旋的形式不合适
  * （参考sync锁升级过程,如果自旋的线程数=CPU核数/2，或者自旋次数超过10次就会升级为重量级锁）
  *
+ * 注意此处AtomicInteger变量并没有使用volatile关键字
+ *
+ *
+ * 此场景并没有产生aba问题，应为每个线程都是执行+1操作
  *
  * */
 public class CasTest {
     private static AtomicInteger ai = new AtomicInteger(0);
 
-    private static CountDownLatch latch = new CountDownLatch(100000);
+    private static CountDownLatch latch = new CountDownLatch(1000);
 
     public static void main(String[] args) throws InterruptedException {
-        for (int i = 0; i < 100000; i++) {
+        for (int i = 0; i < 1000; i++) {
             new Thread(() -> {
-                ai.getAndIncrement();
+                for (int j = 0; j<10; j++) {
+                    ai.addAndGet(5);
+                }
                 latch.countDown();
             }).start();
         }

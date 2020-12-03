@@ -60,6 +60,10 @@
 
 ​	2 cas
 
+​		cas会引起aba问题，解决方案:AtomicStampedReference
+
+​		cas怎么解决原子性问题：lock
+
 ​	3 对象的内存布局
 
 ​	4 锁升级
