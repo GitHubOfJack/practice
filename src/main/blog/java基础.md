@@ -1,3 +1,13 @@
+1 位运算
+
+2 基本数据类型&包装类
+
+3 String、StringBuilder、StringBuffer
+
+4 ArrayList\LinkedList\HashMap\TreeMap
+
+
+
 1 (h = key.hashCode()) ^ (h >>> 16)
     h是int类型，总共32位，意思是，高位也参与运算，减少碰撞次数
 1 HashMap的容量为什么是2的次幂
