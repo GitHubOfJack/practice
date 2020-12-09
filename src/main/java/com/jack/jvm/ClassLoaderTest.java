@@ -82,10 +82,31 @@ public class ClassLoaderTest extends ClassLoader{
     //没有constantvlaue属性
     private static final Person PERSON = new Person();
 
-
+    private ThreadLocal<String> testString = new ThreadLocal<>();;
 
     public static void main(String[] args) {
         System.out.println(i);
+        ClassLoaderTest test = new ClassLoaderTest();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String name = Thread.currentThread().getName();
+                System.out.println(name);
+                test.testString.set("aaa");
+                String s = test.testString.get();
+                System.out.println(s);
+            }
+        }).start();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String name = Thread.currentThread().getName();
+                System.out.println(name);
+                test.testString.set("bbb");
+                String s = test.testString.get();
+                System.out.println(s);
+            }
+        }).start();
     }
 
 }

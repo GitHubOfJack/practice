@@ -1,5 +1,7 @@
 package com.jack.jvm;
 
+import java.io.Serializable;
+
 /**
  * 主要是JVM Stack的相关知识
  *
@@ -25,7 +27,7 @@ package com.jack.jvm;
  *
  * 方法返回地址
  * */
-public class StackTest {
+public final class StackTest implements Serializable {
 
     private static int i = 0;
 
