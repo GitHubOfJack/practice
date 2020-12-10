@@ -282,25 +282,67 @@
 
 ​				垃圾收集器：
 
-​					serial：复制算法、单线程串行，新生代 -XX:+UseSerialGC
+​					serial（def new generation）：复制算法、单线程串行，适用单核小内存的机器上，新生代 -XX:+UseSerialGC
 
-​					serial old：标记整理算法、单线程串行，老年代 -XX:+UseSerialOldGC
+​					serial old（tenured generation）：标记整理算法、单线程串行，适用单核小内存的机器上，老年代 -XX:+UseSerialOldGC
 
-​					parallel scavange:并行垃圾回收器，采用复制算法，多线程并行，吞吐量优先垃圾回收器，新生代 -XX:
+​					parallel scavange(PSYoungGen):并行垃圾回收器，采用复制算法，多线程并行，吞吐量优先垃圾回收器，新生代 -XX:+UseParallelGC -XX:ParallelGCThreads -XX:MaxGCPauseMills -XX:GCTimeRatio -XX:+UseAdaptiveSizePolicy(不要主动设置年轻代、老年代、年龄、Eden的大小)
 
-​					parallel old:并行垃圾回收器，采用标记整理算法，多线程并行，吞吐量优先垃圾回收器，老年代
+​					parallel old(ParOldGen):并行垃圾回收器，采用标记整理算法，多线程并行，吞吐量优先垃圾回收器，老年代 -XX:+UseParallelOldGC
 
-​					parnew:并行垃圾回收器，新生代
+​					parnew(par new generation):并行垃圾回收器，新生代 -XX:+UseParNewGC -XX:ParallelGCThreads(默认是CPU核数)
 
-​					cms:并发垃圾收集器，老年代，低延迟，采用标记清除算法，会产生内存碎片
+​					cms(concurrent mark-sweep generation):并发垃圾收集器，老年代，低延迟，采用标记清除算法，CMS的默认收集线程数量是=(CPU数量+3)/4，会产生内存碎片,会发生Concurrent Mode Failure  -XX:UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction（1.8版本是92%） -XX:+UseCMSInitiatingOccupancyOnly 一般和前者配合使用，思考如果不配合使用会怎么样？，-XX:+UseCMSCompactAtFullCollection(默认true)  -XX:CMSFullGCsBeforeCompaction -XX:ConcGCThreads
 
-​							初始标记、并发标记、重新标记、并发清除
+​							初始标记、并发标记、重新标记、并发清除。采用的是增量更新的形式。
 
-​					G1：分区模式，region，每个region都可以是eden\survivor\old\hu
+​					G1(garbage-first heap)：分区模式，region(不要主动设置年轻代、老年代、年龄、Eden的大小)，每个region都可以是eden\survivor\old\humongous,避免使用-Xmn、-XX:NewRatio等显式设置Young区大小，会覆盖暂定时间目标,暂停时间不要太苛刻，吞吐量目标为90%，太严苛影响吞吐量,Rset、CardTable和region关系，更新RSet会放入到缓存中，后续异步更新。衰减标准偏差来预测回收Region所需要的时间  -XX:UseG1GC -XX:G1HeapRegionSize -XX:MaxGCPauseMillis -XX:InitiatingHeapOccupancyPercent -XX:ParallelGCThreads -XX:ConcGCThreads -XX:G1MixedGCCountTarget -XX:G1HeapWastePercent -XX:G1OldCSetRegionThresholdPercent -XX:G1MixedGCLiveThresholdPercent
 
-​				相关参数:-Xms -Xmx -Xmn -XX:NewRatio -XX:SurvivorRatio -XX:+DoEscapeAnalysis -XX:+EliminateAllocations -XX:PretenureSizeThreshold -XX:MaxTenuringThreshold=15 -XX:PermSize -XX:MaxPermSize -XX:MaxMetaspaceSize -XX:MetaspaceSize -XX:+UseTLAB -XX:+UseG1GC -XX:+UseParNewGC -XX:+UseConcMarkSwapGC -XX:+HandlePromotionFailure
+​						YGC（STW，复制算法） 并发周期 MixedGC FULLGC
 
-### 		5 直接内存（不受JVM管理），会OOM,会发生GC
+​						上文中，多次提到了global concurrent marking，它的执行过程类似CMS，但是不同的是，在G1 GC中，它主要是为Mixed GC提供标记服务的，并不是一次GC过程的一个必须环节。global concurrent marking的执行过程分为四个步骤： * 初始标记（initial mark，STW）。它标记了从GC Root开始直接可达的对象。 * 并发标记（Concurrent Marking）。这个阶段从GC Root开始对heap中的对象标记，标记线程与应用程序线程并行执行，并且收集各个Region的存活对象信息。 * 最终标记（Remark，STW）。标记那些在并发标记阶段发生变化的对象，将被回收。 * 清除垃圾（Cleanup）。清除空Region（没有存活对象的），加入到free list。第一阶段initial mark是共用了Young GC的暂停。第四阶段Cleanup只是回收了没有存活对象的Region，所以它并不需要STW。
+
+​				相关参数:-Xms -Xmx -Xmn -XX:NewRatio -XX:SurvivorRatio -XX:+DoEscapeAnalysis -XX:+EliminateAllocations -XX:PretenureSizeThreshold -XX:MaxTenuringThreshold=15 -XX:PermSize -XX:MaxPermSize -XX:MaxMetaspaceSize -XX:MetaspaceSize -XX:+UseTLAB -XX:+HandlePromotionFailure
+
+​				GC日志分析
+
+```java
+2020-12-09T19:05:14.542+0800: [GC (Allocation Failure) [PSYoungGen: 2048K->504K(2560K)] 2048K->997K(9728K), 0.1283340 secs] 
+GC发生时间:[GC类型(GC原因)[垃圾收集器类型:YGC前新生代占用->YGC后新生代占用(新生代总大小)]YGC前堆占用->YGC后堆占用(堆总大小),YGC耗时]
+[Times: user=0.00 sys=0.02, real=0.13 secs] 
+[YGC用户耗时 YGC系统耗时 YGC实际耗时]
+2020-12-09T19:05:14.705+0800: [GC (Allocation Failure) [PSYoungGen: 1858K->504K(2560K)] 8496K->7317K(9728K), 0.0007040 secs] 
+[Times: user=0.00 sys=0.00, real=0.00 secs] 
+2020-12-09T19:05:14.706+0800: [Full GC (Ergonomics) [PSYoungGen: 504K->500K(2560K)] [ParOldGen: 6813K->6735K(7168K)] 7317K->7236K(9728K), [Metaspace: 3558K->3558K(1056768K)], 0.0063708 secs] [Times: user=0.00 sys=0.00, real=0.01 secs] 
+2020-12-09T19:05:14.712+0800: [Full GC (Allocation Failure) [PSYoungGen: 500K->493K(2560K)] 
+GC发生时间:[GC类型(GC原因) [Young区:GC前Young区内存占用->GC后Young区内存占用(Young区总大小)]                           
+[ParOldGen: 6735K->6723K(7168K)] 7236K->7217K(9728K), [Metaspace: 3558K->3558K(1056768K)], 0.0065637 secs]  
+[old区:GC前Old区内存占用->GC后Old区内存占用(Old区总大小)]GC前堆内存占用->GC后堆内存占用(堆总大小),[元空间:GC前元空间内存占用->GC后元空间内存占用(元空间总大小),GC耗时]                                                                                                            
+[Times: user=0.09 sys=0.00, real=0.01 secs] 
+[用户时间 系统时间 实际耗时]
+
+    
+规律：名称：GC前内存占用->GC后内存占用 该区域总大小
+real —— 程序从开始到结束所用的时钟时间（进程阻塞的时间）
+user —— 进程执行用户态代码（核心之外）所使用的时间
+sys —— 进程在内核态消耗的 CPU 时间                               
+```
+
+
+
+### 		5 方法区 会OOM，会GC
+
+​				类信息 、常量、静态变量、JIT及时编译的代码
+
+​				其中字符串常量池(intern方法)和静态变量在1.7中都放入了堆中
+
+​				1.7之前方法区的实现是永久代，1.8之后是元空间
+
+​				-XX:PermSize -XX:MaxPermSize -XX:MaxMetaspaceSize -XX:MetaspaceSize
+
+​				类回收的条件：1 ClassLoader不使用 2 Class对象不使用 3 实例对象不使用
+
+### 		6 直接内存（不受JVM管理），会OOM,会发生GC
 
 ​				nio会直接使用直接内存DirectByteBuffer，0copy技术.
 
@@ -308,25 +350,7 @@
 
 ## 3 执行引擎
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+​	解释执行和编译执行（为什么两者都存在？）
 
 ## 4 杂
 
@@ -525,10 +549,12 @@
 *              2 有自适应策略
 *      4 cms(GCDetails中的信息是：concurrent mark-sweep generation)
 *          -XX:+UseConcMarkSweepGC
-*          可以调整发生垃圾回收堆空间阈值
+*          -XX:CMSInitiatingOccupancyFraction(1.8默认是92%)
+*          -XX:+UseCMSInitiatingOccupancyOnly（默认是true）
 *          -XX:UseCMSCompactAtFullCollection
 *          -XX:CMSFullGCsBeforeCompaction
 *          -XX:ConcGCThreads
+*		   -XX:ParallelGCThreads
 *
 *          用于老年代垃圾回收，采用标记-清除算法，会产生内存碎片，并发的垃圾回收器，
 *          不能等到内存满了之后再进行gc,，存在回收失败的情况（concurrent mode failure），需要使用serial old作为后备方式
@@ -545,8 +571,16 @@
 *          把堆分成大小相同的N个Region,每个Region都可以是Eden,Survivor,old区，还有一个大对象区，只要超过Region一半都属于大对象。
 *          g1把region当成单次回收的最小单元，每次回收都是region的整数倍，G1在后台维护一个优先级列表，根据设置的最大停顿时间，默认200毫秒，
 *          优先处理回收价值最大的Region
+*		   -XX:InitiatingHeapOccupancyPercent（当整个Java堆的占用率达到参数值时，开始并发标记阶段；默认为45）
+*		   -XX:ParallelGCThreads
+*		   -XX:ConcGCThreads
+*		   -XX:G1MixedGCCountTarget默认值8在一次全局并发标记后，最多接着8此Mixed GC也就是会把全局并发标记阶段生成的Cset里的Region拆分为最多8部分，然后在每轮Mixed GC里收集一部分
+*		   -XX:G1HeapWastePercent默认值5%，也就是在全局标记结束后能够统计出所有Cset内可被回收的垃圾占整对的比例值，如果超过5%，那么就会触发之后的多轮Mixed GC，如果不超过，那么会在之后的某次Young GC中重新执行全局并发标记。可以尝试适当的调高此阈值，能够适当的降低Mixed GC的频率
+*		   -XX:G1OldCSetRegionThresholdPercent默认10%，也就是每轮Mixed GC附加的Cset的Region不超过全部Region的10%
+*		   -XX:G1MixedGCLiveThresholdPercent在全局并发标记阶段，如果一个Region的存活对象的空间占比低于此值，则会被纳入Cset
 *
-*          半衰平均值-最近的参考价值越大
+*
+*          衰减标准偏差-最近的参考价值越大
 *
 *          新生代的占比是从5%-60%
 *
@@ -876,3 +910,83 @@
 *
 * 内存屏障和读写屏障
 ```
+
+```
+* JVM指令总结
+* 1 JDK自带
+*      所有命令都支持 -help
+*      jps -m(main)l(location)v(virtual)
+*      jinfo [option] pid
+*          option如下：
+*          -flag <name>         to print the value of the named VM flag
+*          -flag [+|-]<name>    to enable or disable the named VM flag
+*          -flag <name>=<value> to set the named VM flag to the given value
+*          -flags               to print VM flags
+*          -sysprops            to print Java system properties
+*          <no option>          to print both of the above
+*          -h | -help           to print this help message
+*      jstat [option] pid [interval] [count] （实时查看虚拟机状态，可以查看各个区域大小）
+*          option如下：
+*          -class(加载或者卸载了多少个类，总大小是多少)
+*          -gc（GC信息，每个区域容量大小是多少，使用了多少）
+*     jstack [-l|-m] pid -l(lock) -m(mixed包含JVM栈和本地方法栈) 查看这个进程下所有的线程信息
+*          jstack 10 > /logs/catalina_out/jstack.dump可以导出到文件
+*          top 查看占用CPU最高的进程
+*          top -Hp pid查看pid进程中线程占用CPU的情况
+*          通过printf %x 172把10进制转换成16进制，可以查找nid=0x（xxx就是转换的结果）的线程信息
+*     jmap [option] pid （-heap实时查看虚拟机各个区域大小，可以查看所有加载的类信息-histo(-verbose:class\-XX:+TraceClassLoading)）
+*          option如下:
+*          -heap                查看各区域大小
+*          -histo[:live]        查看所有对象
+*          -clstats             查看class loader的统计信息
+*          -finalizerinfo       打印finalization队列的对象信息
+*          -dump:<dump-options> to dump java heap in hprof binary format
+*                          dump-options:
+*                            live         dump only live objects; if not specified,
+*                                         all objects in the heap are dumped.
+*                            format=b     binary format
+*                            file=<file>  dump heap to <file>
+*
+*  2 标准参数
+*      -version -verbose:[gc|class](可以打印GC信息和类加载信息 jmap -histo:live  -XX:+TraceClassLoading)
+*
+*  3 X参数
+*      -Xloggc:fileName -Xms -Xmx -Xmn -Xss
+*  4 XX参数
+*      参数查看相关：
+*          -XX:+PrintFlagsInitial -XX:+PrintFlagsFinal -XX:+PrintCommandLineFlags
+*      内存相关：
+*          -Xms -Xmx -Xmn -Xss -XX:NewRatio -XX:SurvivorRatio -XX:PermSize
+*          -XX:MateSpaceSize -XX:MaxPermSize -XX:MaxMetaSpaceSize -XX:MaxDirectMemorySize(默认与-Xmx相同)
+*      GC相关：
+*          GC日志：
+*              -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:/home/GCEASY/gc.log
+*              -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=20M
+*              -XX:+PrintGCApplicationConcurrentTime -XX:+PrintGCApplicationStoppedTime
+*              -XX:+PrintTenuringDistribution
+*          垃圾收集器相关:
+*              serial
+*                  -XX:+UseSerialGC -XX:UseSerialOldGC
+*              parallel
+*                  -XX:+UseParallelGC -XX:+UseParalelOldGC -XX:ParallelGCThreads
+*                  -XX:MaxGCPauseMills -XX:GCTimeRatio -XX:+UseAdaptiveSizePolicy
+*              par new
+*                  -XX:+UseParNewGC -XX:ParallelGCThreads
+*              cms
+*                  -XX:UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction -XX:+UseCMSInitiatingOccupancyOnly
+*                  -XX:+UseCMSCompactAtFullCollection -XX:CMSFullGCsBeforeCompaction -XX:ConcGCThreads
+*              g1
+*                  -XX:UseG1GC -XX:G1HeapRegionSize -XX:MaxGCPauseMillis -XX:InitiatingHeapOccupancyPercent
+*                  -XX:ParallelGCThreads -XX:ConcGCThreads -XX:G1MixedGCCountTarget -XX:G1HeapWastePercent
+*                  -XX:G1OldCSetRegionThresholdPercent -XX:G1MixedGCLiveThresholdPercent
+*          其它:
+*              -XX:+UseTLAB -XX:MaxTenuringThreshold -XX:PretenureSizeThreshold -XX:+DoEscapeAnalysis
+*              -XX:+EliminateAllocations -XX:+HandlePromotionFailure -XX:+HeapDumpOnOutOfMemoryError
+*              -XX:+TraceClassLoading
+```
+
+![linux1](D:\personWorkspace\practice\src\main\blog\linux1.png)
+
+![linux2](D:\personWorkspace\practice\src\main\blog\linux2.png)
+
+## 5 OMM与内存调优案例

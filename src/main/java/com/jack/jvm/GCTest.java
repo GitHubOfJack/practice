@@ -183,9 +183,9 @@ import java.util.List;
 public class GCTest {
     private static final int _1M = 1024*1024;
     public static void main(String[] args) throws InterruptedException, IllegalAccessException, InstantiationException, InvocationTargetException, NoSuchMethodException {
-        //doTest1();
-        /*doTest2();
-        System.gc();*/
+        doTest1();
+        //doTest2();
+        //System.gc();
 
         GCTest gcTest = GCTest.class.newInstance();
         System.out.println(gcTest);
