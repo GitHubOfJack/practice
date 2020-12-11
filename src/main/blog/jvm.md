@@ -518,3 +518,9 @@ String res  = JSON.toJSONString(srcRes, config);
 导致的问题:jvm报错OOM:metaspce
 
 分析思路：元空间溢出，基本可以锁定是加载了过多的类，但是项目已经运行了一段时间，应该是某个功能动态生成了很多类，所以在启动命令里面加了-verbose:class(此处不能使用jinfo动态增加-XX:+TraceClassLoading，这个值不能动态改变)，程序启动之后在catalina.out文件中发现生成了大量的com.alibaba.fastjson.serializer.ASMSerializer,该类是利用asm技术生成的，每次new就生成一个，最终导致内存溢出。解决办法：单例一个对象
+
+
+
+问题二：接口访问超时问题
+
+同事反馈接口访问超时，要到具体信息后发现，不是一个接口超时，很多接口超时，基本判断是应用程序问题（服务器问题运维会报警），通过uav查看接口请求时间的服务器运行情况，发现基本与full gc重合，full gc发生6s左右，接口超时时间一般为3s左右，查看gc情况发现,minor gc频繁发生，一分钟25次，cms gc 1个小时一次（别的服务10多个小时一次），gc前老年代内存占用1.8G左右（服务器配置，2c4g，内存设置3g），gc后300M左右，gc日志中有new threshold1(max 6)（思考为什么）,基本判定是过早晋升导致的问题，解决方案，调整新生代大小，规则，老年代大小为gc后活跃对象的3倍，剩余的给新生代，所以新生代2g，老年代1g，调整后，minor gc一分钟10次，cms gc 10多个小时一次，超时情况发生频率减少。
