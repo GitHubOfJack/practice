@@ -238,6 +238,16 @@
 
 ​					正常情况下，新生代中对象大于MaxTenuringThreshold后会进入老年代，但是如果Survivor区中某个相同年龄的对象占整个区域的一半大小时，大于等于这个年龄的对象都会晋升到老年代.
 
+​					对象如何进入老年代，通常有4种情况会导致对象进入老年代
+
+​							动态年龄判断
+
+​							大对象直接进入老年代
+
+​							超过MaxTenuringThreshold阈值年龄(默认15)的对象进入老年代
+
+​							空间分配担保机制，如Survivor区无法放入所有的存活对象时
+
 ​				对象的状态：可触及、可复活（finallze方法，只会调用一次）、不可触及
 
 ​				对象的引用：强、软、弱、虚（必须配合reference-queue一起使用，在垃圾回收时接收一些通知）
@@ -990,3 +1000,25 @@ sys —— 进程在内核态消耗的 CPU 时间
 ![linux2](D:\personWorkspace\practice\src\main\blog\linux2.png)
 
 ## 5 OMM与内存调优案例
+
+问题一：FASTJSON使用不当导致内存溢出问题
+
+场景：接口对外输出数据时候，输出JSON格式数据，并且要求时间格式是YYYY-MM-DD，但是默认时间的格式返回的是毫秒数
+
+错误写法：
+
+SerializeConfig config = new SerializeConfig();
+
+config.put(Date.class, new SimpleDateFormatSerializer("yyyy-MM-dd HH:mm:ss"));
+
+String res  = JSON.toJSONString(srcRes, config);
+
+导致的问题:jvm报错OOM:metaspce
+
+分析思路：元空间溢出，基本可以锁定是加载了过多的类，但是项目已经运行了一段时间，应该是某个功能动态生成了很多类，所以在启动命令里面加了-verbose:class(此处不能使用jinfo动态增加-XX:+TraceClassLoading，这个值不能动态改变)，程序启动之后在catalina.out文件中发现生成了大量的com.alibaba.fastjson.serializer.ASMSerializer,该类是利用asm技术生成的，每次new就生成一个，最终导致内存溢出。解决办法：单例一个对象
+
+
+
+问题二：对象过早晋升的问题
+
+内存大小3G内存，新生代1G，老年代2G，现在是每隔7个小时，发生一次FULL GC，GC完之后会回收老年代1.5G左右内存，FULL GC耗时400ms,MinorGC平均耗时40-70ms,平均50多，

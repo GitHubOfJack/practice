@@ -183,9 +183,11 @@ import java.util.List;
 public class GCTest {
     private static final int _1M = 1024*1024;
     public static void main(String[] args) throws InterruptedException, IllegalAccessException, InstantiationException, InvocationTargetException, NoSuchMethodException {
+        //Thread.sleep(10000000);
         doTest1();
         //doTest2();
         //System.gc();
+
 
         GCTest gcTest = GCTest.class.newInstance();
         System.out.println(gcTest);
@@ -197,11 +199,16 @@ public class GCTest {
     }
 
     public static void doTest1() {
-        byte[] a1, a2, a3, a4;
-        a1 = new byte[2*_1M];
-        a2 = new byte[2*_1M];
-        a3 = new byte[2*_1M];
+        byte[] a1, a2, a3, a4, a5, a6, a7, a8, a9;
+        a1 = new byte[1024];
+        a5 = new byte[1*_1M];
+        a3 = new byte[1*_1M];
         a4 = new byte[4*_1M];
+        a2 = new byte[4*_1M];
+        a6 = new byte[4*_1M];
+        a7 = new byte[4*_1M];
+        a8 = new byte[4*_1M];
+        a9 = new byte[4*_1M];
     }
 
     public static void doTest2() throws InterruptedException {
