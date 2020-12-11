@@ -721,6 +721,7 @@ sys —— 进程在内核态消耗的 CPU 时间
 * -Xloggc:/home/GCEASY/gc-%t.log（当JVM重启以后，会生成新的日志文件，新的日志也不会覆盖老的日志，只需要在日志文件名中添加%t的后缀即可，%t会给文件名添加时间戳后缀，格式是YYYY-MM-DD_HH-MM-SS）
 *
 * -XX:+HeapDumpOnOutOfMemoryError
+* -XX:HeapDumpPath
 *
 * -XX:TraceClassLoading
 *
@@ -973,7 +974,7 @@ sys —— 进程在内核态消耗的 CPU 时间
 *              -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:/home/GCEASY/gc.log
 *              -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=20M
 *              -XX:+PrintGCApplicationConcurrentTime -XX:+PrintGCApplicationStoppedTime
-*              -XX:+PrintTenuringDistribution
+*              -XX:+PrintTenuringDistribution -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath
 *          垃圾收集器相关:
 *              serial
 *                  -XX:+UseSerialGC -XX:UseSerialOldGC
