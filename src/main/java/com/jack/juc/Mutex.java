@@ -128,6 +128,28 @@ import java.util.concurrent.locks.*;
  *
  * ReentrantReadWriteLock 实现了 ReadWriteLock
  *
+ *
+ *
+ * 共享锁与独占锁的区别
+ * 1 独占锁模式下，只有独占锁的节点释放了之后，才会唤醒后续节点的线程。
+ * 2 共享锁模式下，当一个节点获取了共享锁，我们获取成功之后就可以唤醒后续节点线程，而不需要等待释放锁再唤醒线程。
+ *  共享锁可以被多个线程同时持有，一个线程获取到锁，后续节点有很大几率可以获取到锁。所以，在获取锁和释放锁的时候都会唤醒后续节点的线程。
+ *
+ * Semaphore#tryAcquireShared方法的返回值是一个int类型(独占锁返回的是boolean类型-代表获取锁成功或者失败)
+ * 0 代表获取锁成功，但是后续获取锁会失败
+ * 大于0, 代表获取锁成功，后续获取锁大概率会成功
+ * 小于0，代表获取锁失败
+ *
+ * 共享锁--在构造方法中指定了state的值（代表了可以有多少个线程同时获取锁）
+ *
+ * 在独占锁中new Node()中,nextWaiter指向Node.EXCLUSIVE=null
+ * 在共享锁中new Node()中，nextWaiter指向Node.SHARED=new Node()--所有的节点的nextWaiter都指向同一个SHARED对象，可以用来判定下一个NODE是不是共享锁
+ *
+ * 在独占锁中setHead()--1 把head指针指向当前节点 2 当前节点的thread=null 3 当前节点的prev=null 4 元head节点的next=null(为了GC)
+ * 在共享锁中setHeadAndPropagate() --1 setHead()(包含了以上所有动作) 2 如果state还有剩余锁&&下一个节点是共享节点，调用releaseShared()方法
+ *
+ * 释放锁的逻辑
+ *
  */
 
 public class Mutex implements Lock, java.io.Serializable {

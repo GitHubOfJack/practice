@@ -677,3 +677,38 @@ private void doReleaseShared() {
     }
 }
 ```
+
+
+
+
+
+
+
+Condition接口源码解析
+
+```java
+//Condition是个接口
+//ConditionObject是AQS的内部类,ConditionObject实现了Condition接口
+//ConditionObject中有firstWaiter\lastWaiter两个属性
+//condition必须和lock配合使用
+//Lock接口有个方法newCondition，返回Condition对象
+Lock lock = new ReentrantLock();
+Condition condition = lock.newCondition();
+condition.await();
+condition.signal();
+condition.signalAll();
+```
+
+```java
+//调用的是ReentrantLock内部类Sync中的newCondition方法
+public Condition newCondition() {
+    return sync.newCondition();
+}
+```
+
+```java
+//在该方法中直接new ConditionObject
+final ConditionObject newCondition() {
+    return new ConditionObject();
+}
+```
