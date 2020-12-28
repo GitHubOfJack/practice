@@ -712,3 +712,202 @@ final ConditionObject newCondition() {
     return new ConditionObject();
 }
 ```
+
+
+
+await方法源码解析
+
+```java
+//AQS中ConditionObject内部类中的方法
+//能调用此方法的必定是持有锁的线程--此处的锁必须是实现了Lock的锁
+public final void await() throws InterruptedException {
+    if (Thread.interrupted())
+        throw new InterruptedException();
+    //添加一个新的Node节点到等待队列中(注意，此处并不是把同步队列中的Node节点加入等待队列，而是创建了一个新的Node)
+    Node node = addConditionWaiter();
+    //释放锁，此处的释放锁，会释放该线程所有的锁，（即，如果一个线程加了两次锁，state=2,则此处直接state=0）并返回持有的锁的个数
+    int savedState = fullyRelease(node);
+    int interruptMode = 0;
+    //查看当前节点是否在同步队列中
+    while (!isOnSyncQueue(node)) {
+        //当前线程挂起
+        LockSupport.park(this);
+        //---------------------------------------------------
+        //以下是线程被唤醒之后的逻辑--包括了被中断和被signal两种唤醒方式
+        if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+            break;
+    }
+    if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
+        interruptMode = REINTERRUPT;
+    if (node.nextWaiter != null) // clean up if cancelled
+        unlinkCancelledWaiters();
+    if (interruptMode != 0)
+        reportInterruptAfterWait(interruptMode);
+}
+```
+
+```java
+//新建Node节点并加入到等待队列中
+private Node addConditionWaiter() {
+    Node t = lastWaiter;
+    //如果Node的waitStatus非CONDITION，则从firstWaiter开始，往后遍历找出最后一个状态是CONDITION节点作为尾部节点
+    //等待队列中的状态有三种,CONDITION(初始状态),0,和CANCELLED
+    //同步队列中的状态有三种,0(初始状态),SIGNAL和取消，以及PROPAGATE
+    if (t != null && t.waitStatus != Node.CONDITION) {
+        //从前往后遍历找出最后一个状态是CONDITION节点作为尾部节点
+        unlinkCancelledWaiters();
+        t = lastWaiter;
+    }
+    //创建一个新的节点（注意，节点状态是CONDITION）
+    Node node = new Node(Thread.currentThread(), Node.CONDITION);
+    //如果头节点是空，则当前节点为头节点
+    if (t == null)
+        firstWaiter = node;
+    //否则，把尾节点的nextWaiter指向当前节点
+    else
+        t.nextWaiter = node;
+    //尾节点指向当前节点
+    lastWaiter = node;
+    return node;
+}
+```
+
+```java
+//释放线程拥有的所有锁,即state=0,此处返回值表明的是该线程持有的锁的个数（重入的个数）
+final int fullyRelease(Node node) {
+    boolean failed = true;
+    try {
+        int savedState = getState();
+        //排他锁释放线程方法一样
+        if (release(savedState)) {
+            failed = false;
+            return savedState;
+        } else {
+            throw new IllegalMonitorStateException();
+        }
+    } finally {
+        if (failed)
+            node.waitStatus = Node.CANCELLED;
+    }
+}
+```
+
+```java
+//判定Node是否在同步队列中
+final boolean isOnSyncQueue(Node node) {
+    //在等待队列中
+    if (node.waitStatus == Node.CONDITION || node.prev == null)
+        return false;
+    //在同步队列中
+    if (node.next != null) // If has successor, it must be on queue
+        return true;
+    //从尾节点开始查询Node是否在同步队列中
+    return findNodeFromTail(node);
+}
+```
+
+```Java
+//从尾节点开始查询Node是否在同步队列中
+private boolean findNodeFromTail(Node node) {
+    Node t = tail;
+    for (;;) {
+        if (t == node)
+            return true;
+        if (t == null)
+            return false;
+        t = t.prev;
+    }
+}
+```
+
+
+
+signal方法源码解析
+
+```java
+//AQS中ConditionObject内部类中的方法
+//能调用此方法的必定是持有锁的线程--此处的锁必须是实现了Lock的锁
+public final void signal() {
+    //检查当前线程是否持有锁
+    if (!isHeldExclusively())
+        throw new IllegalMonitorStateException();
+    Node first = firstWaiter;
+    if (first != null)
+        //通知第一个waiter
+        doSignal(first);
+}
+```
+
+```java
+//通知第一个waiter
+private void doSignal(Node first) {
+    do {
+        //如果头节点的下一个节点是空，则把等待队列置空
+        if ( (firstWaiter = first.nextWaiter) == null)
+            lastWaiter = null;
+        first.nextWaiter = null;
+    } while (!transferForSignal(first) &&
+             (first = firstWaiter) != null);
+}
+```
+
+```java
+final boolean transferForSignal(Node node) {
+    /*
+     * If cannot change waitStatus, the node has been cancelled.
+     */
+    if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))
+        return false;
+
+    /*
+     * 加入到同步队列中，同获取锁中的enq方法是同一个方法,返回值是当前节点的前一个节点
+     */
+    Node p = enq(node);
+    int ws = p.waitStatus;
+    //如果前一个节点取消或者更改状态失败，则唤醒首节点
+    if (ws > 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))
+        LockSupport.unpark(node.thread);
+    //返回true，则退出循环，表明唤醒节点
+    return true;
+}
+```
+
+
+
+await方法被唤醒之后的逻辑
+
+```java
+private int checkInterruptWhileWaiting(Node node) {
+    return Thread.interrupted() ?
+        (transferAfterCancelledWait(node) ? THROW_IE : REINTERRUPT) :
+        0;
+}
+```
+
+```java
+final boolean transferAfterCancelledWait(Node node) {
+    if (compareAndSetWaitStatus(node, Node.CONDITION, 0)) {
+        enq(node);
+        return true;
+    }
+    /*
+     * If we lost out to a signal(), then we can't proceed
+     * until it finishes its enq().  Cancelling during an
+     * incomplete transfer is both rare and transient, so just
+     * spin.
+     */
+    while (!isOnSyncQueue(node))
+        Thread.yield();
+    return false;
+}
+```
+
+```java
+private void reportInterruptAfterWait(int interruptMode)
+    throws InterruptedException {
+    if (interruptMode == THROW_IE)
+        throw new InterruptedException();
+    else if (interruptMode == REINTERRUPT)
+        selfInterrupt();
+}
+```
