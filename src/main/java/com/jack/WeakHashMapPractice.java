@@ -7,4 +7,5 @@ package com.jack;
  * 效果是：key在gc的时候被回收，value是在key清除后访问WeakHashMap的时候被清除
  * */
 public class WeakHashMapPractice {
+
 }
