@@ -59,13 +59,33 @@
 
 ​	bit(1位) byte(字节-8位) char(2个字节-16位) short(2个字节-16位) int(4个字节-32位) long(8个字节-64位) float(4个字节-32位) double(8个字节-64位)
 
-​	
+```
+* 构造方法有如下几种
+* Integer a = 1;  字节码底层是Integer.valueOf(1)实现的
+* Integer b = new Integer(1);
+* Integer.valueOf(1)  -127到128 会先查看缓存中是否有值,如果没有值new Integer(i)
+*
+* Integer.equals比较的是两个值是否相等
+* == 比较的是内存地址
+*
+* 如果一个Integer对象和int值做对比,则先调用Integer.intValue获取Integer的值，然后两个int值做对比
+```
 
-3 String、StringBuilder、StringBuffer
-
-4 ArrayList\LinkedList\HashMap\TreeMap
+3 String、StringBuilder、StringBuffer、threadlocal
 
 
+
+4 ArrayList\LinkedList\HashMap\TreeMap\ConcurrentHashMap\CopyOnWriteArrayList
+
+​	1.7中HashMap和ConcurrentHashMap的源码
+
+​	1.8中HashMap和ConcurrentHashMap的源码
+
+
+
+
+
+​	主要看put方法、扩容、树化、参数值等方面入手、每个参数的含义是什么、为什么说hashMap是线程不安全的
 
 1 (h = key.hashCode()) ^ (h >>> 16)
     h是int类型，总共32位，意思是，高位也参与运算，减少碰撞次数
