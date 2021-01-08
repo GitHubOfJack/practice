@@ -71,11 +71,134 @@
 * 如果一个Integer对象和int值做对比,则先调用Integer.intValue获取Integer的值，然后两个int值做对比
 ```
 
-3 String、StringBuilder、StringBuffer、threadlocal
+3 Thread、ThreadLocal
+
+```java
+/**
+ *
+ * Thread类继承了Runnable接口
+ * 构造器中主要有两个参数一个是Runnable接口，一个是名称 new Thread(Runnable runnable, String name)
+ *
+ * 线程状态
+ * Thread.State.NEW
+ * Thread.State.RUNNABLE
+ * Thread.State.BLOCKED(waiting for a monitor lock, enter a synchronized block/method)
+ * Thread.State.WAITING(Object.wait, Thread.join, LockSupport.park)
+ * Thread.State.TIMED_WAITING(Thread.sleep, Object.wait with timeout, Thread.join with timeout, LockSupport.parkNanos, LockSupport.parkUntil)
+ * Thread.State.TERMINATED
+ *
+ * java中线程中断的两种方法：
+ * 1 设置或者清除中断标志（interrupt status）
+ * Thread.currentThread().isInterrupted();实例方法   返回线程是否中断的标识,不会重置中断标志
+ * Thread.interrupted();静态方法    返回线程是否中断的标识&重置中断标志
+ * 2 抛出中断异常(interruptedException)
+ * Thread.currentThread().interrupt();实例方法--  中断线程
+ * 中断线程的意义是：给等待或者执行中的线程一个机会，可以终止等待或者中断正在执行的任务。但是仅仅是一个机会，并不会真的终止线程。
+ *
+ * Thread.sleep, Object.wait, Thread.join等方法在被打断之后，会获取到打断异常，在抛出异常之后（即捕获到异常之后）会清除当前线程的中断标志
+ *
+ * 所谓中断一个线程，并不是让线程停止运行。仅仅是将线程的中断标志设置为true，或者在某些情况下抛出异常。在被中断的线程的角度看，仅仅是自己的中断
+ * 标志变成true，或者代码中抛出了异常而已。（至于用不用这个标志来做业务处理，或者处理不处理异常，全靠自己的业务实现。）
+ *
+ * 若线程被中断前，如果该线程处于非阻塞状态(未调用过wait,sleep,join方法)，那么该线程的中断状态将被设为true, 除此之外，不会发生任何事。
+ * 若线程被中断前，该线程处于阻塞状态(调用了wait,sleep,join方法)，那么该线程将会立即从阻塞状态中退出，并抛出一个InterruptedException异常，同时，该线程的中断状态被设为false, 除此之外，不会发生任何事。
+ *
+ * */
+```
 
 
 
-4 ArrayList\LinkedList\HashMap\TreeMap\ConcurrentHashMap\CopyOnWriteArrayList
+```java
+/**
+ * ThreadLocal<T>
+ *
+ * 典型的以空间换时间的多线程并发解决方案
+ *
+ * 原理：
+ * 每个Thread中都有一个ThreadLocalMap属性threadLocals,该对象是一个KV结构对象
+ * 其中key=ThreadLocal对象本身  Value=T对象，也就是你真正需要的对象
+ * 注意，key是WeakReference
+ * 此处可能会产生内存泄漏问题，原因
+ * 如果线程是一个线程池中的核心线程（长时间存在），那么value这个值会长时间存在内存中，
+ * 虽然这个值已经没有用了（因为KEY是弱引用，GC的时候已经回收，但是VALUE的指针会一直存在线程中）
+ *
+ * 最佳实践就是 调用了ThreadLocal#set()方法之后，需要调用ThreadLocal#remove()方法
+ * */
+```
+
+
+
+4 TreeMap--基于红黑树实现的
+
+​		private final Comparator<? super K> comparator;
+
+​		private transient Entry<K,V> root;
+
+​		
+
+```java
+static final class Entry<K,V> implements Map.Entry<K,V> {
+    K key;
+    V value;
+    Entry<K,V> left;
+    Entry<K,V> right;
+    Entry<K,V> parent;
+    boolean color = BLACK;
+}
+```
+
+
+
+CopyOnWriteArrayList	
+
+```java
+/**
+ * CopyOnWriteArrayList解析
+ * final transient ReentrantLock lock = new ReentrantLock();
+ * private transient volatile Object[] array;
+ *
+ * add代码
+ * 流程梳理：首先获取锁，然后数组copy,最后添加元素,释放锁
+ * public boolean add(E e) {
+ *         final ReentrantLock lock = this.lock;
+ *         lock.lock();
+ *         try {
+ *             Object[] elements = getArray();
+ *             int len = elements.length;
+ *             Object[] newElements = Arrays.copyOf(elements, len + 1);
+ *             newElements[len] = e;
+ *             setArray(newElements);
+ *             return true;
+ *         } finally {
+ *             lock.unlock();
+ *         }
+ *     }
+ *
+ * get代码流程
+ *  获取数组(此时的数组可能是原始数据，也可能是锁定之后扩容之后的数组)，获取数组元素
+ *  注意，此时读取数据和添加数据可以同时进行，读取并没有加锁，只是不能保证读取的一定是最新的数据
+ *  public E get(int index) {
+ *         return get(getArray(), index);
+ *     }
+ *
+ *  final Object[] getArray() {
+ *         return array;
+ *     }
+ *
+ * */
+```
+
+
+
+ConcurrentHashMap
+
+​		
+
+​	
+
+
+
+
 
 ​	1.7中HashMap和ConcurrentHashMap的源码
 
