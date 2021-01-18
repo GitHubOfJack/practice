@@ -1,6 +1,66 @@
 package com.jack.mysql;
 
 /**
+ * SQL命令
+ *  1 mysql -h 127.0.0.1 -P 3306 -u root -p(链接数据库)
+ *  2 show databases(查看所有数据库)
+ *  3 use test(切换至test库)
+ *  4 show tables(查看所有表)
+ *  5 desc a(查看a表的字段)
+ *  6 show index from a(查看a表中的索引)
+ *  7 truncate table a(清空表数据)
+ *  8 drop table a(删除表)
+ *  9 create table a(id int not null auto_increment, name varchar(10), primary key (id))(创建表)
+ *  10 ALTER TABLE a ADD INDEX idx_name(name(5))（创建索引）
+ *      CREATE INDEX idx_name ON a(name(5))
+ *  11 alter table a drop index idx_name（删除索引）
+ *      drop index inx_name on a
+ *  12 show variables like '%buffer%' (查看变量)
+ *  13 show profiles(没有开启,返回空)
+ *  +----------+------------+-----------------+
+ * | Query_ID | Duration   | Query           |
+ * +----------+------------+-----------------+
+ * |        1 | 0.00102925 | select * from a |
+ * +----------+------------+-----------------+
+ *  14 set profiling =1(开启) set profiling =0(关闭)
+ *  15 show profile [all|cpu|默认是duration] for query 1（查看13中返回的查询列表中的操作耗时详情）
+ *  +----------------------+----------+
+ * | Status               | Duration |
+ * +----------------------+----------+
+ * | starting             | 0.000036 |
+ * | checking permissions | 0.000011 |
+ * | Opening tables       | 0.000783 |
+ * | init                 | 0.000014 |
+ * | System lock          | 0.000012 |
+ * | optimizing           | 0.000004 |
+ * | statistics           | 0.000011 |
+ * | preparing            | 0.000009 |
+ * | executing            | 0.000002 |
+ * | Sending data         | 0.000021 |
+ * | end                  | 0.000002 |
+ * | query end            | 0.000004 |
+ * | closing tables       | 0.000005 |
+ * | freeing items        | 0.000087 |
+ * | cleaning up          | 0.000030 |
+ * +----------------------+----------+
+ * 16 show processlist(查看该数据库有多少个连接，以及连接情况)
+ * +--------+------+-----------------+------+---------+------+-------+------------------+
+ * | Id     | User | Host            | db   | Command | Time | State | Info             |
+ * +--------+------+-----------------+------+---------+------+-------+------------------+
+ * | 303612 | root | localhost:63631 | NULL | Sleep   | 3592 |       | NULL             |
+ * | 303623 | root | localhost:63659 | test | Query   |    0 | init  | show processlist |
+ * | 304005 | root | localhost:64953 | test | Sleep   | 2812 |       | NULL             |
+ * | 305822 | root | localhost:54144 | NULL | Sleep   |    8 |       | NULL             |
+ * | 305823 | root | localhost:54147 | test | Sleep   |    5 |       | NULL             |
+ * +--------+------+-----------------+------+---------+------+-------+------------------+
+ * 17 select version();查看MYSQL版本
+ * 18 help show;查看show的所有情况
+ *
+ * 19 begin(后面不需要跟transaction)/start transaction
+ * 20 set session autocommit=on/off
+ * 21 commit/rollback
+ *
+ *
  *
  * mysql从以下几点梳理
  *  1 存储引擎（存储方式）
