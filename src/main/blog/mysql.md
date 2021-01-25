@@ -240,3 +240,5 @@ MYSQL架构：
 ![](/Users/a0003/IdeaProjects/practice/src/main/blog/innodb数据页结构.png)
 
 ![数据库行记录](/Users/a0003/IdeaProjects/practice/src/main/blog/数据库行记录.png)
+
+参考文章：https://blog.csdn.net/xiewenfeng520/article/details/99715680
