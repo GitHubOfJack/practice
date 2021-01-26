@@ -242,3 +242,103 @@ MYSQL架构：
 ![数据库行记录](/Users/a0003/IdeaProjects/practice/src/main/blog/数据库行记录.png)
 
 参考文章：https://blog.csdn.net/xiewenfeng520/article/details/99715680
+
+mvcc参考文章：https://blog.csdn.net/qq_31821675/article/details/71135933
+
+关于MySQL的InnoDB的MVCC原理，很多朋友都能说个大概：
+
+> 每行记录都含有两个隐藏列，分别是记录的创建时间与删除时间
+>
+> 每次开启事务都会产生一个全局自增ID
+>
+> 在RR隔离级别下
+>
+> INSERT -> 记录的创建时间 = 当前事务ID，删除时间 = NULL
+>
+> DELETE -> 记录的创建时间不动，删除时间 = 当前事务ID
+>
+> UPDATE -> 将记录复制一次
+>
+> 　　　　　　　　老记录的创建时间不动，删除时间 = 当前事务ID
+>
+> 　　　　　　　　新记录的创建时间 = 当前事务ID，删除时间 = NULL
+>
+> SELECT -> 返回的记录需要满足两个条件：
+>
+> 　　　　　　　　创建时间 <= 当前事务ID (记录是在当前事务之前或者由当前事务创建的）
+>
+> 　　　　　　　　删除时间 == NULL || 删除时间 > 当前事务ID （记录是在当前事务之后被删除的）
+
+ 
+
+但实际上，这个描述是很不严格的，问题有以下几点：
+
+ 
+
+### 1. 每条记录含有的隐藏列不是两个而是三个
+
+它们分别是：
+
+**DB_TRX_ID**, 6byte, 创建这条记录/最后一次更新这条记录的事务ID
+
+**DB_ROLL_PTR**, 7byte，回滚指针，指向这条记录的上一个版本（存储于rollback segment里）
+
+**DB_ROW_ID**, 6byte，隐含的自增ID，如果数据表没有主键，InnoDB会自动以DB_ROW_ID产生一个聚簇索引
+
+另外，每条记录的[头信息（record header）里都有一个专门的bit（**deleted_flag**）](https://blog.jcole.us/2013/01/10/the-physical-structure-of-records-in-innodb)来表示当前记录是否已经被删除
+
+### 2. 记录的历史版本是放在专门的rollback segment里（undo log）
+
+　　UPDATE非主键语句的效果是
+
+　　　　老记录被复制到rollback segment中形成undo log，DB_TRX_ID和DB_ROLL_PTR不动
+
+　　　　新记录的DB_TRX_ID = 当前事务ID，DB_ROLL_PTR指向老记录形成的undo log
+
+　　　　这样就能通过DB_ROLL_PTR找到这条记录的历史版本。如果对同一行记录执行连续的update操作，新记录与undo log会组成一个链表，遍历这个链表可以看到这条记录的变迁）
+
+### 3. MySQL的一致性读，是通过一个叫做[read view](https://github.com/twitter/mysql/blob/master/storage/innobase/include/read0read.h#L124)的结构来实现的
+
+read_view中维护了系统中活跃事务集合的快照，这些活跃事务ID的**最小值为up_limit_id，\**最大值为low_limit_id\****（不要搞反了！！！）
+
+附上源码注释以便于理解
+
+> trx_id_t low_limit_id; // The read should not see any transaction with trx id >= this value. In other words, this is the "high water mark".
+> trx_id_t up_limit_id; // The read should see all trx ids which are strictly smaller (<) than this value. In other words, this is the "low water mark".
+
+SELECT操作返回结果的可见性是由以下规则决定的：
+
+**DB_TRX_ID < up_limit_id** -> 此记录的最后一次修改在read_view创建之前，可见
+
+**DB_TRX_ID > low_limit_id**  -> 此记录的最后一次修改在read_view创建之后，不可见 -> 需要用DB_ROLL_PTR查找undo log(此记录的上一次修改)，然后根据undo log的DB_TRX_ID再计算一次可见性
+
+**up_limit_id <= DB_TRX_ID <= low_limit_id** -> 需要进一步检查read_view中是否含有DB_TRX_ID
+
+　　　　**DB_TRX_ID ∉ read_view** -> 此记录的最后一次修改在read_view创建之前，可见
+
+　　　　**DB_TRX_ID ∈ read_view** -> 此记录的最后一次修改在read_view创建时尚未保存，不可见 -> 需要用DB_ROLL_PTR查找undo log(此记录的上一次修改)，然后根据undo log的DB_TRX_ID再从头计算一次可见性
+
+经过上述规则的决议，我们得到了这条记录相对read_view来说，可见的结果。
+
+此时，如果这条记录的delete_flag为true，说明这条记录已被删除，不返回。
+
+　　　如果delete_flag为false，说明此记录可以安全返回给客户端
+
+### 4. 用MVCC这一种手段可以同时实现RR与RC隔离级别
+
+它们的不同之处在于：
+
+**RR**：read view是在**first touch read**时创建的，也就是执行事务中的第一条SELECT语句的瞬间，后续所有的SELECT都是复用这个read view，所以能保证每次读取的一致性（可重复读的语义）
+
+**RC**：每次读取，都会创建一个新的read view。这样就能读取到其他事务已经COMMIT的内容。
+
+所以对于InnoDB来说，RR虽然比RC隔离级别高，但是开销反而相对少。
+
+补充：RU的实现就简单多了，不使用read view，也不需要管什么DB_TRX_ID和DB_ROLL_PTR，直接读取最新的record即可。
+
+
+
+- InnoDb存储引擎中，每行数据包含了一些隐藏字段 DATA_TRX_ID，DATA_ROLL_PTR，DB_ROW_ID，DELETE BIT
+- DATA_TRX_ID 字段记录了数据的创建和删除时间，这个时间指的是对数据进行操作的事务的id
+- DATA_ROLL_PTR 指向当前数据的undo log记录，回滚数据就是通过这个指针
+- DELETE BIT位用于标识该记录是否被删除，这里的不是真正的删除数据，而是标志出来的删除。真正意义的删除是在mysql进行数据的GC，清理历史版本数据的时候。
