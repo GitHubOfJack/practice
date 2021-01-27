@@ -241,9 +241,15 @@ MYSQL架构：
 
 ![数据库行记录](/Users/a0003/IdeaProjects/practice/src/main/blog/数据库行记录.png)
 
+![sql更新的流程](/Users/a0003/IdeaProjects/practice/src/main/blog/sql更新的流程.png)
+
+![mysql-binlog-主从复制](/Users/a0003/IdeaProjects/practice/src/main/blog/mysql-binlog-主从复制.png)
+
 参考文章：https://blog.csdn.net/xiewenfeng520/article/details/99715680
 
 mvcc参考文章：https://blog.csdn.net/qq_31821675/article/details/71135933
+
+主从复制、undo\redo\binlog：https://blog.csdn.net/weixin_42513602/article/details/112270444
 
 关于MySQL的InnoDB的MVCC原理，很多朋友都能说个大概：
 
