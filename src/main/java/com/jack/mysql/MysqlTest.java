@@ -187,7 +187,7 @@ package com.jack.mysql;
  *
  * mysql从以下几点梳理
  *  1 存储引擎（存储方式）
- *  2 事务（acid）-a(redo\lock\undo) binlog
+ *  2 事务（acid）-a(redo\lock\\undo) binlog
  *  3 索引
  *  4 优化
  *  5 explain
