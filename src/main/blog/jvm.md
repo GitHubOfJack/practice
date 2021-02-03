@@ -515,9 +515,9 @@ config.put(Date.class, new SimpleDateFormatSerializer("yyyy-MM-dd HH:mm:ss"));
 
 String res  = JSON.toJSONString(srcRes, config);
 
-导致的问题:jvm报错OOM:metaspce
+导致的问题:运维发警报说是机器内存占用异常，直接把服务KILL掉
 
-分析思路：元空间溢出，基本可以锁定是加载了过多的类，但是项目已经运行了一段时间，应该是某个功能动态生成了很多类，所以在启动命令里面加了-verbose:class(此处不能使用jinfo动态增加-XX:+TraceClassLoading，这个值不能动态改变)，程序启动之后在catalina.out文件中发现生成了大量的com.alibaba.fastjson.serializer.ASMSerializer,该类是利用asm技术生成的，每次new就生成一个，最终导致内存溢出。解决办法：单例一个对象
+分析思路：jstate监控各个区域的内存变化情况，发现元空间一致增加，原因是1.7升级到1.8并未设置元空间大小，基本可以锁定是加载了过多的类，但是项目已经运行了一段时间，应该是某个功能动态生成了很多类，所以在启动命令里面加了-verbose:class(此处不能使用jinfo动态增加-XX:+TraceClassLoading，这个值不能动态改变)，程序启动之后在catalina.out文件中发现生成了大量的com.alibaba.fastjson.serializer.ASMSerializer,该类是利用asm技术生成的，每次new就生成一个，最终导致内存溢出。解决办法：单例一个对象
 
 
 
