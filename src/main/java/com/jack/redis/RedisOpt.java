@@ -76,6 +76,15 @@ package com.jack.redis;
  *     3 redis集群的方式（主-从模式、哨兵模式、集群模式？？？）
  *     4 redis集群的通信方式
  *     5 缓存雪崩、缓存击穿、缓存穿透以及相应的解决方案
+ *
+ *
+ *
+ *     redis的缓存过期处理&内存淘汰机制
+ *     redis的内存慢了之后的处理
+ *     redis主从复制的原理
+ *     redis哨兵模式和集群模式
+ *     redis选主过程
+ *     redis单线程、高并发块的原因
  */
 public class RedisOpt {
 }
