@@ -53,8 +53,24 @@ package com.jack.redis;
  *
  *     1 redis的5中数据类型的常用操作
  *
- *          key相关的操作:
+ *     redis-cli -h host -p port -a password
  *
+ *          key相关的操作:
+ *              exists key [key...]   例如：exists k1 k2(可罗列多个)
+ *              keys pattern        例如:keys *    keys k*
+ *              del key [key...]    例如:del k1 k2
+ *              expire key seconds  例如： expire k1 10 设置k1的过期时间是10秒
+ *              expireat key timestamp  例如：expireat k1 1612259478 设置k1的过期时间是1612259478(unix时间戳，单位秒)
+ *              pexpire key milliseconds    例如:pexpire k1 100 设置k1的过期时间是100毫秒
+ *              pexpireat key milliseconds-timestamp    例如：pexpireat k1 1612259478000 设置k1的过期时间是1612259478000(unix时间戳，单位毫秒)
+ *              persist key  例如：persist k1 设置k1为永久有效
+ *              ttl key 例如：ttl k1       key剩余有效时间，返回integer(s),-1表示永久有效，-2表示key不存在
+ *              pttl key 例如：ttl k1      key剩余有效时间，返回integer(ms),-1表示永久有效，-2表示key不存在
+ *              rename key newkey       key重命名为newkey
+ *              renamenx key newkey     key重命名为newkey，仅当newkey不存在时，才命名为newkey，1-设置成功，0-设置失败
+ *              type key                返回key所存储值的类型
+ *
+ *          字符串相关操作
  *
  *     2 redis数据持久化的方式
  *     3 redis集群的方式（主-从模式、哨兵模式、集群模式？？？）
