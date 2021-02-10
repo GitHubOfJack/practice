@@ -1,3 +1,4 @@
+```
 说明：spring版本是5.2.7
 
 1 Spring常用类
@@ -19,7 +20,6 @@
     1.16 Aware
 
 
-​    
 2 Spring是如何解决循环依赖的
 循环依赖分为两种情况：
 1 构造器依赖
@@ -144,58 +144,61 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
 ​	->@Import(TransactionManagementConfigurationSelector.class) extends ImportSelector
 
 ​		->AutoProxyRegistrar ProxyTransactionManagementConfiguration
-            AutoProxyRegistrar implements ImportBeanDefinitionRegistrar -> 注册了一个internalAutoProxyCreator=InfrastructureAdvisorAutoProxyCreator
-            ProxyTransactionManagementConfiguration是一个@Configuration -> BeanFactoryTransactionAttributeSourceAdvisor\TransactionAttributeSource(此处的构造器会注入一个SpringTransactionAnnotationParser)\TransactionInterceptor三个bean
-            InfrastructureAdvisorAutoProxyCreator extends InstantiationAwareBeanPostProcessor
-            执行postProcessAfterInitialization的流程：
-                        wrapIfNecessary->
-                            1 getAdvicesAndAdvisorsForBean
-                                1.1 findCandidateAdvisors 获取所有增强器-类中所有的方法
-                                    1.1.1 super.findCandidateAdvisors() 获取所有Advisor接口的类  在此可以获取BeanFactoryTransactionAttributeSourceAdvisor增强器
-                                1.2 findAdvisorsThatCanApply 同AOP一样，通过二层循环解决，通过TransactionAttributeSource找出所有的匹配的@Transactional注解-先从目标方法上获取、再从目标类上获取、再从接口方法中获取，再从接口类上获取
-                            2 createProxy
-                                2.1 ProxyFactory proxyFactory = new ProxyFactory();
-                                2.2 Advisor[] advisors = buildAdvisors(beanName, specificInterceptors); proxyFactory.addAdvisors(advisors);
-                                2.3 proxyFactory.getProxy(getProxyClassLoader());
-                                    2.3.1 JdkDynamicAopProxy CglibAopProxy
-            JdkDynamicAopProxy 
-            	List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);//此处会获取BeanFactoryTransactionAttributeSourceAdvisor中的Advice，即TransactionInterceptor
-                MethodInvocation invocation = new ReflectiveMethodInvocation(proxy, target, method, args, targetClass, chain);
-                invocation.proceed();
-                和AOP的执行流程是一致的
-            TransactionInterceptor.invoke(mi);
-                invokeWithinTransaction() {
-                    //此处获取的TransactionAttributeSource就是注册的TransactionAttributeSource的单例对象
-                    TransactionAttributeSource tas = getTransactionAttributeSource();
-                    //如果非事务方法，则txAttr为NULL，会从方法、类、接口类、接口方法上寻找TransactionAttribute
-                    TransactionAttribute txAttr = (tas != null ? tas.getTransactionAttribute(method, targetClass) : null);
-                    //如果注解上指定了transactionManager则使用该tm,如果拦截器有tm，如果没有则取TransactionManager类型的tm;
-                    TransactionManager tm = determineTransactionManager(txAttr);
-                    TransactionInfo txInfo = createTransactionIfNecessary(ptm, txAttr, joinpointIdentification);
-                    try {
-                        // This is an around advice: Invoke the next interceptor in the chain.
-                        // This will normally result in a target object being invoked.
-                        retVal = invocation.proceedWithInvocation();
-                    }
-                    catch (Throwable ex) {
-                        // target invocation exception
-                        completeTransactionAfterThrowing(txInfo, ex);
-                        throw ex;
-                    }
-                    finally {
-                        cleanupTransactionInfo(txInfo);
-                    }
-                    if (vavrPresent && VavrDelegate.isVavrTry(retVal)) {
-                        // Set rollback-only in case of Vavr failure matching our rollback rules...
-                        TransactionStatus status = txInfo.getTransactionStatus();
-                        if (status != null && txAttr != null) {
-                            retVal = VavrDelegate.evaluateTryFailure(retVal, txAttr, status);
-                        }
-                    }
-                    commitTransactionAfterReturning(txInfo);
-                    return retVal;
-                }
-                
+​            AutoProxyRegistrar implements ImportBeanDefinitionRegistrar -> 注册了一个internalAutoProxyCreator=InfrastructureAdvisorAutoProxyCreator
+​            ProxyTransactionManagementConfiguration是一个@Configuration -> BeanFactoryTransactionAttributeSourceAdvisor\TransactionAttributeSource(此处的构造器会注入一个SpringTransactionAnnotationParser)\TransactionInterceptor三个bean
+​            InfrastructureAdvisorAutoProxyCreator extends InstantiationAwareBeanPostProcessor
+​            执行postProcessAfterInitialization的流程：
+​                        wrapIfNecessary->
+​                            1 getAdvicesAndAdvisorsForBean
+​                                1.1 findCandidateAdvisors 获取所有增强器-类中所有的方法
+​                                    1.1.1 super.findCandidateAdvisors() 获取所有Advisor接口的类  在此可以获取BeanFactoryTransactionAttributeSourceAdvisor增强器
+​                                1.2 findAdvisorsThatCanApply 同AOP一样，通过二层循环解决，通过TransactionAttributeSource找出所有的匹配的@Transactional注解-先从目标方法上获取、再从目标类上获取、再从接口方法中获取，再从接口类上获取
+​                            2 createProxy
+​                                2.1 ProxyFactory proxyFactory = new ProxyFactory();
+​                                2.2 Advisor[] advisors = buildAdvisors(beanName, specificInterceptors); proxyFactory.addAdvisors(advisors);
+​                                2.3 proxyFactory.getProxy(getProxyClassLoader());
+​                                    2.3.1 JdkDynamicAopProxy CglibAopProxy
+​            JdkDynamicAopProxy 
+​            	List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);//此处会获取BeanFactoryTransactionAttributeSourceAdvisor中的Advice，即TransactionInterceptor
+​                MethodInvocation invocation = new ReflectiveMethodInvocation(proxy, target, method, args, targetClass, chain);
+​                invocation.proceed();
+​                和AOP的执行流程是一致的
+​            TransactionInterceptor.invoke(mi);
+​                invokeWithinTransaction() {
+​                    //此处获取的TransactionAttributeSource就是注册的TransactionAttributeSource的单例对象
+​                    TransactionAttributeSource tas = getTransactionAttributeSource();
+​                    //如果非事务方法，则txAttr为NULL，会从方法、类、接口类、接口方法上寻找TransactionAttribute
+​                    TransactionAttribute txAttr = (tas != null ? tas.getTransactionAttribute(method, targetClass) : null);
+​                    //如果注解上指定了transactionManager则使用该tm,如果拦截器有tm，如果没有则取TransactionManager类型的tm;
+​                    TransactionManager tm = determineTransactionManager(txAttr);
+​                    TransactionInfo txInfo = createTransactionIfNecessary(ptm, txAttr, joinpointIdentification);
+​                    try {
+​                        // This is an around advice: Invoke the next interceptor in the chain.
+​                        // This will normally result in a target object being invoked.
+​                        retVal = invocation.proceedWithInvocation();
+​                    }
+​                    catch (Throwable ex) {
+​                        // target invocation exception
+​                        completeTransactionAfterThrowing(txInfo, ex);
+​                        throw ex;
+​                    }
+​                    finally {
+​                        cleanupTransactionInfo(txInfo);
+​                    }
+​                    if (vavrPresent && VavrDelegate.isVavrTry(retVal)) {
+​                        // Set rollback-only in case of Vavr failure matching our rollback rules...
+​                        TransactionStatus status = txInfo.getTransactionStatus();
+​                        if (status != null && txAttr != null) {
+​                            retVal = VavrDelegate.evaluateTryFailure(retVal, txAttr, status);
+​                        }
+​                    }
+​                    commitTransactionAfterReturning(txInfo);
+​                    return retVal;
+​                }
+```
+
+​                
+
                 createTransactionIfNecessary() {
                     TransactionStatus status = tm.getTransaction(txAttr);
                     return prepareTransactionInfo(tm, txAttr, joinpointIdentification, status);
@@ -351,8 +354,9 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
                 			resume(transaction, (SuspendedResourcesHolder) status.getSuspendedResources());
                 		}
                 	}
-                
-                
+
+
+​                
                 protected void cleanupTransactionInfo(@Nullable TransactionInfo txInfo) {
                 		if (txInfo != null) {
                 			txInfo.restoreThreadLocalStatus();
@@ -372,8 +376,9 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
                 }
              
             CglibAopProxy  
-            
-            
+
+
+​            
             TransactionManager
              TransactionStatus getTransaction(@Nullable TransactionDefinition definition)
              void commit(TransactionStatus status)
@@ -384,9 +389,11 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
             TransactionInterceptor   
             TransactionStatus       savepoint
             TransactionDefinition   7大传播属性 4种隔离级别
-             
-             
-  @Async注解--同AOP
+
+​             
+
+```
+ @Async注解--同AOP
 
 6 ApplicationContext和BeanFactory的区别
   ApplicationContext extends EnvironmentCapable, MessageSource, ApplicationEventPublisher, ResourceLoader
@@ -404,9 +411,14 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
 ​	4 责任链模式
 
 ​	5 代理模式
+```
+
+
+
 
     6 适配器模式-aop(非MethodInterceptor转换成)
 
+```
 8 CGLIIB
     无法为final方法或者类创建代理，无法为static方法创建代理，无法为private方法创建代理
     可以使用System.setProperty(DebuggingClassWriter.DEBUG_LOCATION_PROPERTY, "target/cglib");设置CGLIB生成的字节码类生成位置
@@ -448,42 +460,50 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
                 2.15 callRunners   获取容器中的ApplicationRunner对象和CommandLineRunner.class对象，调用他们的run方法--可以进行数据的初始化操作
                 如果有异常，通过异常报告器处理异常
                 2.16 2.4的监听器running方法 和2.14流程一样，发布ApplicationReadyEvent方法，发布AvailabilityChangeEvent事件
-    
-                        
-                
-        
+```
+
+
+​    
+​                        
+​                
+​        
 Spring注解分类
-    @Component
-        @Controller
-        @Service
-        @Repository
-        @Configuration
-            @Bean
-            @Import
-            @ComponentScan
-            
+​    @Component
+​        @Controller
+​        @Service
+​        @Repository
+​        @Configuration
+​            @Bean
+​            @Import
+​            @ComponentScan
+​            
+
             @Profile
             @ImportResource
             @ComponentScans
             @Primary
             @Lazy
             @PropertySource
-            
-            
+
+
+​            
             @ConfigurationProperties--springboot注解
-            
-            
-            
+
+
+​            
+​            
         @Value
         @Autowired
         @Resource
         @Inject
         @Qualifier
-        
-        
-        
-        
-        
+
+
+​        
+​        
+​        
+
+```
 @SpringBootApplication
         @SpringBootConfiguration
             @Configuration
@@ -611,7 +631,10 @@ SpringApplication.run(PracticeApplication.class, args);
                             new WebServerStartStopLifecycle(this, this.webServer));
                     5 初始化参数配置
                     initPropertySources();
-                    
+```
+
+
+​                    
                     getWebServerFactory()流程
                         String[] beanNames = getBeanFactory().getBeanNamesForType(ServletWebServerFactory.class);
                         return getBeanFactory().getBean(beanNames[0], ServletWebServerFactory.class);
@@ -699,12 +722,13 @@ SpringApplication.run(PracticeApplication.class, args);
         11 发布ApplicationStartedEvent事件
         12 callRunners---获取容器中的ApplicationRunner对象和CommandLineRunner.class对象，调用他们的run方法--可以进行一些事件的初始化操作
         13 发布ApplicationReadyEvent方法
-                
-            
-    
+
+
+​            
+​    
 ConfigurationClassPostProcessor工作流程
 ConfigurationClassPostProcessor.postProcessBeanDefinitionRegistry();
-        
+​        
         	1 获取所有的BeanDefinition   registry.getBeanDefinitionNames()
         
         	2 循环所有的BeanDefinition   ConfigurationClassUtils.checkConfigurationClassCandidate 找出加了@Configuration注解的类（只会有默认启动的类和@SpringBootApplication的类，此时只能获取@SpringBootApplication的类）
@@ -775,9 +799,12 @@ ConfigurationClassPostProcessor.postProcessBeanDefinitionRegistry();
                 类似于SpringMVC中的拦截器，每次执行请求时，都会对经过拦截器。
                 同样，加了MethodInterceptor，那么在每次代理对象的方法时，都会先经过MethodInterceptor中的方法
         2 增加ImportAwareBeanPostProcessor
+```
 这个类是完成Spring自动装配的关键，SpringBoot注解上@Import(AutoConfigurationImportSelector.class)的注解在这个地方被解析
 AutoConfigurationImportSelector implements ImportSelector(selectImports)
     selectImports() {
         1 从META-INF/spring.factories中找出key=EnableAutoConfiguration的所有类
         2 获取所有的排除类信息，排除掉，返回所有的自动装配的类
     }
+```
+
