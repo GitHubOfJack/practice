@@ -114,3 +114,22 @@ ps：zk的心跳连接是master发送到salve的心跳
 
 ​	curator-封装的zk操作客户端
 
+
+
+Zk的客户端和服务端是基于tcp长连接（tcp长连接是基于心跳机制保障的），
+
+每个客户端连接，zk都会给它分配一个全局唯一的sessionid，每个客户端都有一个**Timeout**：会话超时时间，**TickTime**：下次会话超时时间点，默认 2000 毫秒，**isClosing**：该属性标记一个会话是否已经被关闭，当 server 端检测到会话已经超时失效，该会话标记为"已关闭"，不再处理该会话的新请求。
+
+zookeeper 的 leader 服务器再运行期间定时进行会话超时检查，时间间隔是 ExpirationInterval，单位是毫秒，默认值是 tickTime，每隔 tickTime 进行一次会话超时检查。
+
+常用命令
+
+​	ls path
+
+​	get path [watch]
+
+​	create [-s] [-e] path data        -s 和 -e 都是可选的，-s 代表顺序节点， -e 代表临时节点，注意其中 -s 和 -e 可以同时使用的，并且临时节点不能再创建子节点
+
+​	set path data [version]
+
+​	delete path [version]
