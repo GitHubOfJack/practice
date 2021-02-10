@@ -383,13 +383,13 @@ public class RedisOpt {
 
 
 
-
-
-![cap理论](/Users/a0003/IdeaProjects/practice/src/main/blog/cap理论.png)
+![cap理论](D:\personWorkspace\practice\src\main\blog\cap理论.png)
 
 ![](D:\personWorkspace\practice\src\main\blog\Redis数据结构.png)
 
-![redis主从复制-全量](/Users/a0003/IdeaProjects/practice/src/main/blog/redis主从复制-全量.png)![redis-主从复制-部分](/Users/a0003/IdeaProjects/practice/src/main/blog/redis-主从复制-部分.png)
+![redis主从复制-全量](D:\personWorkspace\practice\src\main\blog\redis主从复制-全量.png)
+
+![redis-主从复制-部分](D:\personWorkspace\practice\src\main\blog\redis-主从复制-部分.png)
 
 参考文章：
 
