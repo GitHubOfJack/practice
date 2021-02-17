@@ -80,6 +80,272 @@
 
 
 
+```java
+* AtomicInteger
+* 底层是CAS+volatile实现的
+*
+* CAS的缺点：
+* 1 ABA问题，改进方式   加版本号  具体实现AtomicStampedReference
+* 2 自旋时间过长导致消耗CPU资源,自适应自旋
+* 3 只能保证一个共享变量的原子操作，可以使用AtomicReference
+*
+*
+* 自旋锁使用场景：
+* 如果业务逻辑执行时间很短，没有必要执行线程的切换（需要用户态->核心态转变），如果采用线程自旋的形式，会减少获取锁的成本。
+*
+* 如果竞争很激烈或者业务逻辑执行时间很长，采用自旋的形式不合适
+* （参考sync锁升级过程,如果自旋的线程数=CPU核数/2，或者自旋次数超过10次就会升级为重量级锁）
+*
+* 注意此处AtomicInteger变量并没有使用volatile关键字
+*
+*
+* 此场景并没有产生aba问题，应为每个线程都是执行+1操作
+```
+
+
+
+```java
+* 1.7 HashMap Entry ConcurrentHashMap Segment HashEntry
+* 1.8 HashMap Node  ConcurrentHashMap Node
+* AQS Node
+*
+* synchronized 和 Lock区别
+* 1 存在层面  sync是Java关键字，是JVM底层实现的（c++ monitorObject对象） Lock是Java实现的，是JUC包中的一个接口
+* 2 锁的状态  sync无法判断是否获得锁成功，Lock可以判断是否获取锁成功（isHeldByCurrentThread()）
+* 3 锁的获取  sync中，A线程获得锁，B线程等待。如果A阻塞，则B一直等待。在Lock中，如果A获取锁，B可能会尝试获取锁，获取不到才会等待
+* 4 锁的释放  sync中，代码执行完毕或者异常之后会自动释放。LOCK中，必须在finally中释放。
+* 5 锁的类型  sync中，可重入、不可中断、非公平锁  LOCK，可重入、可中断、可公平、可不公平（sync不可中断的意思是：A线程获取锁，B线程等待，线程中断不能停止B的等待）
+* 6 锁的性能  sync中，适用于竞争不激烈的场景。（经历过锁的优化之后，SYNC在竞争不激烈的情况下，性能优于Lock）. LOCK，适用于竞争激烈的场景
+*
+* firstWaiter lastWaiter
+```
+
+
+
+```java
+* AQS是抽象类，但是并没有抽象方法，因为如果是抽象类，所有抽象方法必须实现，但是一般情况下只需要实现部分方法。
+* AQS底层采用的是 （state+CLH+CAS) 实现的
+*
+* AQS类主要信息如下：
+*  属性信息如下：
+*      private transient volatile Node head;
+*      private transient volatile Node tail;
+*      private volatile int state;
+*      private transient Thread exclusiveOwnerThread;
+*  内部类信息如下：
+*      static final class Node {
+*          volatile int waitStatus;
+*          volatile Node prev;
+*          volatile Node next;
+*          volatile Thread thread;
+*          Node nextWaiter;
+*      }
+*
+*      public class ConditionObject implements Condition {
+*          private transient Node firstWaiter;
+*          private transient Node lastWaiter;
+*          await();
+*          signal();
+*          signalAll();
+*      }
+*  需要子类实现的方法如下：
+*      1 tryAcquire(int arg); 获取排它锁 成功则返回true，失败则返回false
+*      2 tryRelease(int arg); 释放排它锁 成功则返回true，失败则返回false
+*      3 tryAcquireShared(int arg); 获取共享锁  负数表示失败；0表示成功，但没有剩余可用资源；正数表示成功，且有剩余资源
+*      4 tryReleaseShared(int arg); 释放共享锁 尝试释放资源，如果释放后允许唤醒后续等待结点返回true，否则返回false
+*      5 isHeldExclusively(); 是否线程独占  只有用到condition才需要去实现它
+*
+* 外部调用的时候使用的方法是(这些方法都是final的方法（模板方法模式）)：
+* AbstractQueuedSynchronizer.acquire(int arg);
+* AbstractQueuedSynchronizer.release();
+* AbstractQueuedSynchronizer.tryAcquireNanos();
+*
+* AbstractQueuedSynchronizer.acquireShared();
+* AbstractQueuedSynchronizer.releaseShared();
+* AbstractQueuedSynchronizer.tryAcquireSharedNanos();
+*
+*
+*
+*
+* CANCELLED(1)：表示当前结点已取消调度。当timeout或被中断（响应中断的情况下），会触发变更为此状态，进入该状态后的结点将不会再变化。
+* SIGNAL(-1)：表示后继结点在等待当前结点唤醒。后继结点入队时，会将前继结点的状态更新为SIGNAL。
+* CONDITION(-2)：表示结点等待在Condition上，当其他线程调用了Condition的signal()方法后，CONDITION状态的结点将从等待队列转移到同步队列中，等待获取同步锁。
+* PROPAGATE(-3)：共享模式下，前继结点不仅会唤醒其后继结点，同时也可能会唤醒后继的后继结点。
+* 0：新结点入队时的默认状态。
+* 注意，负值表示结点处于有效等待状态，而正值表示结点已被取消。所以源码中很多地方用>0、<0来判断结点的状态是否正常。
+*
+*
+* 需要说明的一点是：CLH队列中，head节点永远是一个哑巴节点，它不代表任何线程（即head节点中的thread永远是空），只有从次节点开始才代表了等待锁的线程。
+* 也就是说当线程没有抢到锁被包装成Node节点扔进队列时，即使队列时空的，它也会排在第二个。
+*
+* AQS中的CAS操作针对5个变量，AQS类中的head,tail,state和Node类中的waitStatus,next
+*
+* Lock接口：
+*  void lock();
+*  void lockInterruptibly() throws InterruptedException;
+*  boolean tryLock();
+*  boolean tryLock(long time, TimeUnit unit) throws InterruptedException;
+*  void unlock();
+*  Condition newCondition();
+*
+*  ReentrantLock implements Lock
+*  主要内部类如下：
+*      abstract static class Sync extends AbstractQueuedSynchronizer {
+*          abstract void lock();
+*      }
+*      static final class NonfairSync extends Sync {
+*          final void lock() {
+*             if (compareAndSetState(0, 1))
+*                 setExclusiveOwnerThread(Thread.currentThread());
+*             else
+*                 acquire(1);
+*         }
+*      }
+*      static final class FairSync extends Sync {
+*          final void lock() {
+*             acquire(1);
+*         }
+*      }
+*  主要方法如下：
+*      1 构造器方法
+*          public ReentrantLock() {
+*              sync = new NonfairSync();
+*          }
+*      2 构造器方法
+*          public ReentrantLock(boolean fair) {
+*              sync = fair ? new FairSync() : new NonfairSync();
+*          }
+*      3 加锁方法
+*          public void lock() {
+*              sync.lock();
+*          }
+*      4 释放锁方法
+*          public void unlock() {
+*              sync.release(1);
+*          }
+*
+* 思考AQS,ReentrantLock,Lock关系
+*
+* ReentrantLock是独占锁，但是有公平独占锁和非公平独占锁两种类型
+* ReentrantReadWriteLock中的读锁是共享锁，也有公平共享锁和非公平共享锁两种类型
+* 需要仔细体会下独占锁和共享锁   公平锁和非公平锁的关系
+*
+* ReadWriteLock 没有继承 Lock接口
+*  主要方法：
+*      Lock readLock();
+*      Lock writeLock();
+*
+*
+* 之所以采用从后往前遍历，是因为我们处于多线程并发条件下，如果一个节点的next属性是null，并不能保证它是尾结点（
+* 可能新加入的尾节点还没来得及执行prev.next=node）但是如果一个队列能够入队，则它的prev属性一定是有值的，所以反向查找是最准确的
+*
+* 锁的释放必须在finally中
+*
+*
+* ReentrantReadWriteLock 实现了 ReadWriteLock
+*
+*
+*
+* 共享锁与独占锁的区别
+* 1 独占锁模式下，只有独占锁的节点释放了之后，才会唤醒后续节点的线程。
+* 2 共享锁模式下，当一个节点获取了共享锁，我们获取成功之后就可以唤醒后续节点线程，而不需要等待释放锁再唤醒线程。
+*  共享锁可以被多个线程同时持有，一个线程获取到锁，后续节点有很大几率可以获取到锁。所以，在获取锁和释放锁的时候都会唤醒后续节点的线程。
+*
+* Semaphore#tryAcquireShared方法的返回值是一个int类型(独占锁返回的是boolean类型-代表获取锁成功或者失败)
+* 0 代表获取锁成功，但是后续获取锁会失败
+* 大于0, 代表获取锁成功，后续获取锁大概率会成功
+* 小于0，代表获取锁失败
+*
+* 共享锁--在构造方法中指定了state的值（代表了可以有多少个线程同时获取锁）
+*
+* 在独占锁中new Node()中,nextWaiter指向Node.EXCLUSIVE=null
+* 在共享锁中new Node()中，nextWaiter指向Node.SHARED=new Node()--所有的节点的nextWaiter都指向同一个SHARED对象，可以用来判定下一个NODE是不是共享锁
+*
+* 在独占锁中setHead()--1 把head指针指向当前节点 2 当前节点的thread=null 3 当前节点的prev=null 4 元head节点的next=null(为了GC)
+* 在共享锁中setHeadAndPropagate() --1 setHead()(包含了以上所有动作) 2 如果state还有剩余锁&&下一个节点是共享节点，调用releaseShared()方法
+*
+* 释放锁的逻辑
+*
+```
+
+
+
+```java
+* 主要介绍java.util.concurrent.locks包下的类
+*      AbstractQueuedSynchronizer
+*
+*     Condition
+*
+*     Lock
+*          lock()  --一直等待锁
+*          tryLock() -- 尝试获取锁，如果获取到返回true，否则返回false
+*          tryLock(long, TimeUnit) -- 尝试在L时间内获取锁，如果获取到返回true，否则返回false
+*          unlock() -- 解锁，必须放在finally中，一次lock对应一次unlock
+*          newCondition() -- 返回一个Condition对象(synchronized与Object.wait\notify组合使用) LOCK与Condition.await\notify组合使用
+*
+*     LockSupport
+*
+*     ReentrantLock
+*
+*     ReadWriteLock
+*
+*     ReentrantReadWriteLock
+```
+
+
+
+```java
+* synchronized关键字
+*
+* 重量级锁ObjectMonitor
+* （1）owner，指向持有ObjectMonitor的线程；
+* （2）WaitSet，wait状态的线程队列，等待被唤醒，也就是调用了wait；
+* （3）EntrySet，等待锁的线程队列，
+* （4）Recursions,重入次数
+*
+* 同步流程
+* （1）有两个线程，线程A、线程B将竞争锁访问同步代码块，先进入ObjectMonitor的EntrySet中等待锁；
+* （2）当CPU调度线程A获取到锁则进入同步代码，ObjectMonitor owner属性指向线程A，线程B继续在EntryList中等待；
+* （3）线程A在同步代码中执行wait，则线程进入WaitSet并释放锁，ObjectMonitor owner属性清空；
+* （4）CPU调度使线程B获取到锁进入同步代码块，ObjectMonitor owner属性指向线程B，任务执行完退出同步代码之前调用notifyAll，线程A被唤醒，从WaitSet转到EntryList中等待锁，线程B退出同步代码块，ObjectMonitor owner属性清空；
+* （5）CPU调度使线程A获取同步锁，继续后续代码；
+*
+* 每一个JAVA对象都和一个ObjectMonitor对象相关联，关联关系存储在对象头中
+* 每一个试图进入代码块的线程都会被封装成ObjectWaiter对象，他们或者在EntryList中或者在WaitSet中等待称为ObjectMonitor的owner
+```
+
+
+
+```java
+* ArrayBlockingQueue
+* LinkedBlockingDeque
+*      Executors.newFixedThreadPool()和Executors.newSingleThreadExecutor()底层均使用此阻塞队列,会造成内存溢出的情况
+* SynchronousQueue
+*      Executors.newCachedThreadPool()使用此阻塞队列，会大量创建线程
+*
+*      add(E e)  remove() 会报错
+*      offer(E e)  poll()  返回
+*      put(E e)   take()   会阻塞
+```
+
+
+
+```java
+* volatile关键字，轻量级的线程同步工具，
+* jmm(java memory model) java内存模型(可以画出内存模型)，规定需要满足三个条件
+* 1 可见性
+* 2 原子性
+* 3 有序性
+*
+*
+* volatile满足两种，可见性和有序性，但是不满足原子性
+* volatile之所以能满足这两种特性底层是通过memory barrier实现的。
+* memory barrier禁止重排序和强制读取主存数据
+*
+*
+* 内存屏障和读写屏障
+```
+
 
 
 Condition接口的主要实现类是AQS的内部类`ConditionObject`，**每个Condition对象都包含一个等待队列**。该队列是Condition对象实现等待/通知的关键。AQS中同步队列与等待队列的关系如下：
@@ -106,6 +372,12 @@ Condition接口的主要实现类是AQS的内部类`ConditionObject`，**每个C
 SYNC重量级锁的获取过程
 
 ![sync-重量级锁的获取过程](D:\personWorkspace\practice\src\main\blog\sync-重量级锁的获取过程.png)
+
+
+
+![锁升级过程](/Users/a0003/IdeaProjects/practice/src/main/blog/锁升级过程.png)
+
+![](/Users/a0003/IdeaProjects/practice/src/main/blog/64位markword.png)
 
 
 

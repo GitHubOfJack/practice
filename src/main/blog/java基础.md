@@ -76,6 +76,33 @@
 ```java
 /**
  *
+ * 线程创建的方式：
+ *  Thread
+ *  Runnable
+ *  Callable和Future
+ *
+ *
+ *  Executors.newFixedThreadPool 底层是linkedblockingqueue
+ *  Executors.newSingleThreadExecutor(); 底层是linkedblockingqueue
+ *  Executors.newCachedThreadPool(); 底层是SynchronousQueue
+ *  Executors.newScheduledThreadPool(1);  底层是DelayedWorkQueue
+ *
+ *  <T> Future<T> submit(Callable<T> task)
+ *  <T> Future<T> submit(Runnable task, T result);
+ *  Future<?> submit(Runnable task);
+ *  void execute(Runnable command);
+ *
+ *  Runnable {public abstract void run();}
+ *  Callable {V call() throws Exception;}
+ *
+ *  callable方法有返回值，可以抛出异常
+ *  
+ *  Future接口有--->FutureTask类（即实现了Runnable接口又实现了Callable接口）
+ *  isDone方法
+ *  cancel方法
+ *  get方法
+ *  get超时方法
+ * 
  * Thread类继承了Runnable接口
  * 构造器中主要有两个参数一个是Runnable接口，一个是名称 new Thread(Runnable runnable, String name)
  *
