@@ -181,6 +181,8 @@ Unsafe类
 ```java
 /**
  * String 是final的  为什么？
+ * 如果不是final的，那么hash值就会改变
+ * 如果不是final的，那么安全性就有问题
  * final关键字   如果是static变量 要么在声明时指定，要么在静态代码块中指定，如果是成员变量 要么在声明时指定，要么在构造方法中指定 final修饰类 final修饰方法 final修饰变量
  * 底层结构是什么?
  * private final char value[]
