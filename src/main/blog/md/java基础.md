@@ -1,6 +1,6 @@
 1 位运算
 
-​	![位运算](D:\personWorkspace\practice\src\main\blog\位运算.png)
+​	![位运算](..\image\位运算.png)
 
 ​	补码
 
@@ -317,7 +317,7 @@ ConcurrentHashMap
             1.7中，移动链表，是会倒序排列到新链表，所以会有循环指针问题，也就是死锁问题，1.8中是正序排列，没有死锁问题。
     
 
-![hashmap-put](C:\Users\yrd\Desktop\hashmap-put.png)
+![hashmap-put](..\image\hashmap-put.png)
 
 ```java
 /**

@@ -369,13 +369,13 @@
  * */
 ```
 
-![偏向锁获取过程](/Users/a0003/IdeaProjects/practice/src/main/blog/偏向锁获取过程.png)
+![偏向锁获取过程](..\image\偏向锁获取过程.png)
 
-<img src="/Users/a0003/IdeaProjects/practice/src/main/blog/偏向锁的撤销过程.png" alt="偏向锁的撤销过程" style="zoom:50%;" />
+<img src="..\image\偏向锁的撤销过程.png" alt="偏向锁的撤销过程" style="zoom:50%;" />
 
-![轻量级锁获取过程](/Users/a0003/IdeaProjects/practice/src/main/blog/轻量级锁获取过程.png)
+![轻量级锁获取过程](..\image\轻量级锁获取过程.png)
 
-![lockrecord结构](/Users/a0003/IdeaProjects/practice/src/main/blog/lockrecord结构.png)
+![lockrecord结构](..\image\lockrecord结构.png)
 
 ```java
 * ArrayBlockingQueue
@@ -411,34 +411,34 @@
 
 Condition接口的主要实现类是AQS的内部类`ConditionObject`，**每个Condition对象都包含一个等待队列**。该队列是Condition对象实现等待/通知的关键。AQS中同步队列与等待队列的关系如下：
 
-![](D:\personWorkspace\practice\src\main\blog\aqs同步队列和等待队列.png)
+![](..\image\aqs同步队列和等待队列.png)
 
 **在Object的监视器模型上，一个对象拥有一个同步队列与一个等待队列，而AQS拥有一个同步队列和多个等待队列**。
 
-![object等待队列和同步队列](D:\personWorkspace\practice\src\main\blog\object等待队列和同步队列.png)
+![object等待队列和同步队列](..\image\object等待队列和同步队列.png)
 
 调用condition的await方法，将会使当前线程进入等待队列并释放锁(先加入等待队列再释放锁)，同时线程状态转为等待状态。
 
 从同步队列和阻塞队列的角度看，调用await方法时，相当于**同步队列的首节点移到condition的等待队列中**
 
-![aqs-wait](D:\personWorkspace\practice\src\main\blog\aqs-wait.png)
+![aqs-wait](..\image\aqs-wait.png)
 
 **调用condition的signal方法时，将会把等待队列的首节点移到等待队列的尾部，然后唤醒该节点。
 被唤醒，并不代表就会从await方法返回，也不代表该节点的线程能获取到锁，它一样需要加入到锁的竞争acquireQueued方法中去，只有成功竞争到锁，才能从await方法返回。**
 
-![aqs-notify](D:\personWorkspace\practice\src\main\blog\aqs-notify.png)
+![aqs-notify](..\image\aqs-notify.png)
 
 
 
 SYNC重量级锁的获取过程
 
-![sync-重量级锁的获取过程](D:\personWorkspace\practice\src\main\blog\sync-重量级锁的获取过程.png)
+![sync-重量级锁的获取过程](..\image\sync-重量级锁的获取过程.png)
 
 
 
-![锁升级过程](/Users/a0003/IdeaProjects/practice/src/main/blog/锁升级过程.png)
+![锁升级过程](..\image\锁升级过程.png)
 
-![](/Users/a0003/IdeaProjects/practice/src/main/blog/64位markword.png)
+![](..\image\64位markword.png)
 
 
 

@@ -237,13 +237,13 @@ MYSQL架构：
 *  操作前生成一个readview，之后的查询操作都重复使用这个readview
 ```
 
-![](D:\personWorkspace\practice\src\main\blog\innodb数据页结构.png)
+![](..\image\innodb数据页结构.png)
 
-![数据库行记录](D:\personWorkspace\practice\src\main\blog\数据库行记录.png)
+![数据库行记录](..\image\数据库行记录.png)
 
-![sql更新的流程](D:\personWorkspace\practice\src\main\blog\sql更新的流程.png)
+![sql更新的流程](..\image\sql更新的流程.png)
 
-![mysql-binlog-主从复制](D:\personWorkspace\practice\src\main\blog\mysql-binlog-主从复制.png)
+![mysql-binlog-主从复制](..\image\mysql-binlog-主从复制.png)
 
 参考文章：https://blog.csdn.net/xiewenfeng520/article/details/99715680
 

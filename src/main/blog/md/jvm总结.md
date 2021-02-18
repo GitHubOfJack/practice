@@ -996,9 +996,9 @@ sys —— 进程在内核态消耗的 CPU 时间
 *              -XX:+TraceClassLoading
 ```
 
-![linux1](D:\personWorkspace\practice\src\main\blog\linux1.png)
+![linux1](..\image\linux1.png)
 
-![linux2](D:\personWorkspace\practice\src\main\blog\linux2.png)
+![linux2](..\image\linux2.png)
 
 ## 5 OMM与内存调优案例
 

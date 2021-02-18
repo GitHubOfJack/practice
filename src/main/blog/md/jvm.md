@@ -54,7 +54,7 @@
 
 2.4 堆（线程共享、会oom，会gc）
 
-![](/Users/a0003/资料/分享/图片/对象分配流程.png)
+![](..\image\对象分配流程.png)
 
 堆分为：新生代和老年代，新生代包含1个Eden和2个Survivor
 
@@ -174,25 +174,25 @@ gc和对象头的关系（标记成11？）
 
 1 serial&serial old垃圾收集器
 
-![serial](/Users/a0003/资料/分享/图片/serial.png)
+![serial](..\image\serial.png)
 
 
 
 2 parnew-serial
 
-![parnew-serialold](/Users/a0003/资料/分享/图片/parnew-serialold.png)
+![parnew-serialold](..\image\parnew-serialold.png)
 
 3 parallel scavenge-parallel old
 
-![parallelscavenge-parallelold](/Users/a0003/资料/分享/图片/parallelscavenge-parallelold.png)
+![parallelscavenge-parallelold](..\image\parallelscavenge-parallelold.png)
 
 4 cms
 
-![cms](/Users/a0003/资料/分享/图片/cms.png)
+![cms](..\image\cms.png)
 
 5 g1
 
-![g1](/Users/a0003/资料/分享/图片/g1.png)
+![g1](..\image\g1.png)
 
 
 
