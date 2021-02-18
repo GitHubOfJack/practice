@@ -70,24 +70,6 @@
 
 5 volatile关键字
 
-​	lock unlock
-
-​	主内存read>工作内存load>变量>use
-
-​	assign>变量store>工作内存write>主内存
-
-​	Object obj = new Object()底层字节码文件
-
-​	new
-
-​	dump
-
-​	invokespecial
-
-​	astore
-
-​	return
-
 6 aqs
 
 ​	基于chl队列的state共享变量的锁模式，通过模版方法模式实现
@@ -410,19 +392,47 @@
 
 
 ```java
-* volatile关键字，轻量级的线程同步工具，
-* jmm(java memory model) java内存模型(可以画出内存模型)，规定需要满足三个条件
-* 1 可见性
-* 2 原子性
-* 3 有序性
-*
-*
-* volatile满足两种，可见性和有序性，但是不满足原子性
-* volatile之所以能满足这两种特性底层是通过memory barrier实现的。
-* memory barrier禁止重排序和强制读取主存数据
-*
-*
-* 内存屏障和读写屏障
+/**
+ * volatile关键字，轻量级的线程同步工具，
+ * jmm(java memory model) java内存模型(可以画出内存模型)，规定需要满足三个条件
+ * 1 可见性
+ * 2 原子性
+ * 3 有序性
+ * 缓存行（64个字节）
+ *
+ *
+ * volatile满足两种，可见性和有序性，但是不满足原子性(比较经典的是i++问题)
+ * sync和lock也可以满足可见性，是释放锁之前会把变量刷回主存中
+ * 重排序：指令重排和编译重排
+ * 有序性：一个变量是boolean一个变量是int的两个线程问题（ais-as if serial happens-before）
+ * volatile写happens-before在volatile读-实现了可见性
+ * volatile通过memory barrier实现有序性
+ *
+ *      lock作用于主内存的变量，把一个变量标记为一个线程独占
+ *      unlock
+ *
+ * ​	主内存read>工作内存load>变量>use
+ *
+ * ​	assign>变量store>工作内存write>主内存
+ *
+ * ​	Object obj = new Object()底层字节码文件
+ *
+ * ​	new
+ *
+ * ​	dump
+ *
+ * ​	invokespecial
+ *
+ * ​	astore
+ *
+ * ​	return
+ *
+ *
+ *
+ * 内存屏障和读写屏障
+ *
+ * volatile关键字的底层实现是：汇编代码会生成一个lock add 0指令
+ * */
 ```
 
 
