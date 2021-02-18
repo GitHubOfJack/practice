@@ -295,7 +295,8 @@
 
 
 ```java
-* synchronized关键字
+/**
+ * synchronized关键字
  *
  * 重量级锁ObjectMonitor
  * （1）owner，指向持有ObjectMonitor的线程；
@@ -345,6 +346,11 @@
  *                          如果写入成功将LockRecord中的owner指向对象的MarkWord，然后执行同步代码块，执行完同步代码块，采用cas操作把记录的原来的MarkWord值写回，然后释放锁。
  *              重量级锁     指向互斥量（重量级锁）的指针                                             10重量级锁
  *                  有两个队列，同步队列和等待队列，这个是需要用户态和内核态的转变的，所以比较重。
+ *                      先判定owner是否为空
+ *                          如果为空，则设置owner=当前线程,recursions=1,进入同步代码块
+ *                          如果非空，查看owner是否是当前线程
+ *                              如果是,recursions++,进入同步代码块
+ *                              如果不是,自旋的方式等待，自旋失败，通过cas进入entryset中
  *          4个字节的KlassPointer（默认开启了指针压缩）
  *          如果是数据，还有4个字节的数组长度
  *      实例数据
@@ -353,6 +359,14 @@
  *          reference 4个字节（默认开启了指针压缩）
  *      对其填充
  *          对象的大小必须是8字节的倍数
+ *
+ *
+ * 重入:
+ *  对于不同级别的锁都有重入策略，偏向锁:单线程独占，重入只用检查threadId等于该线程；
+ *  轻量级锁：重入将栈帧中lock record的header设置为null，重入退出，只用弹出栈帧，直到最后一个重入退出CAS写回数据释放锁；
+ *  重量级锁：重入_recursions++，重入退出_recursions--，_recursions=0时释放锁
+ *
+ * */
 ```
 
 ![偏向锁获取过程](/Users/a0003/IdeaProjects/practice/src/main/blog/偏向锁获取过程.png)

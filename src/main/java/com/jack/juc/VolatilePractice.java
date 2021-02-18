@@ -1,4 +1,4 @@
-package com.jack;
+package com.jack.juc;
 
 /**
  * volatile关键字，轻量级的线程同步工具，

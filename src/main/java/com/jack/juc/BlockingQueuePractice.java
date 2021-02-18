@@ -1,6 +1,7 @@
-package com.jack;
+package com.jack.juc;
 
 import java.util.concurrent.ArrayBlockingQueue;
+
 /**
  * ArrayBlockingQueue
  * LinkedBlockingDeque
