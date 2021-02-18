@@ -70,6 +70,24 @@
 
 5 volatile关键字
 
+​	lock unlock
+
+​	主内存read>工作内存load>变量>use
+
+​	assign>变量store>工作内存write>主内存
+
+​	Object obj = new Object()底层字节码文件
+
+​	new
+
+​	dump
+
+​	invokespecial
+
+​	astore
+
+​	return
+
 6 aqs
 
 ​	基于chl队列的state共享变量的锁模式，通过模版方法模式实现
