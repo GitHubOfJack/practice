@@ -112,9 +112,19 @@ public class JvmTest {
 
     public JvmTest(int m) {
         this.m = m;
+        synchronized (this) {
+            int add = 1 + 1;
+        }
     }
 
-    public static void main(String[] args) {
-
+    public static void main(String[] args) throws RuntimeException{
+        int a = 1;
+        int b = 2;
+        if (a > b) {
+            return;
+        } else {
+            int add = 1 + 1;
+        }
+        throw new RuntimeException();
     }
 }
