@@ -253,6 +253,8 @@ MYSQL架构：
 
 ![mysql-binlog-主从复制](..\image\mysql-binlog-主从复制.png)
 
+![mysql-主从同步详细流程.png](..\image\mysql-主从同步详细流程.png)
+
 参考文章：https://blog.csdn.net/xiewenfeng520/article/details/99715680
 
 mvcc参考文章：https://blog.csdn.net/qq_31821675/article/details/71135933
