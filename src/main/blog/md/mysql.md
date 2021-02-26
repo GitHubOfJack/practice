@@ -235,6 +235,11 @@ MYSQL架构：
 *  在使用rc、rr两种隔离级别的事务在执行普通的select操作时访问记录的版本链的过程中，可以使不同事务的读-写操作并发执行，从而提升系统性能。
 *  rc rr这两个隔离级别的最大不通时，生成readview的实际不通，rc在每一次进行select操作前都会生成readview，而rr只在第一次进行select
 *  操作前生成一个readview，之后的查询操作都重复使用这个readview
+
+* in exist
+*  原则：小表驱动大表（先执行的表要比较小）
+*  结论：子查询的表比较小，主查询的表比较大，用in,否则exist
+*      not in不会走索引，所以not exist的效率比not in的效率高
 ```
 
 ![](..\image\innodb数据页结构.png)

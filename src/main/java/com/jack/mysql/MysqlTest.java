@@ -223,6 +223,11 @@ package com.jack.mysql;
  *          using where：mysql服务器层使用where过滤数据
  *
  *
+ * in exist
+ *  原则：小表驱动大表（先执行的表要比较小）
+ *  结论：子查询的表比较小，主查询的表比较大，用in,否则exist
+ *      not in不会走索引，所以not exist的效率比not in的效率高
+ *
  */
 public class MysqlTest {
 }
