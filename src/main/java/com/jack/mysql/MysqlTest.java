@@ -228,6 +228,11 @@ package com.jack.mysql;
  *  结论：子查询的表比较小，主查询的表比较大，用in,否则exist
  *      not in不会走索引，所以not exist的效率比not in的效率高
  *
+ *
+ * redo log 是 InnoDB 引擎特有的；binlog 是 MySQL 的 Server 层实现的，所有引擎都可以使用。
+ * redo log 是物理日志，记录的是“在某个数据页上做了什么修改”；binlog 是逻辑日志，记录的是这个语句的原始逻辑，比如“给 ID=2 这一行的 c 字段加 1 ”。
+ * redo log 是循环写的，空间固定会用完；binlog 是可以追加写入的。“追加写”是指binlog 文件写到一定大小后会切换到下一个，并不会覆盖以前的日志。有了对这两个日志的概念性理解，我们再来看执行器和 InnoDB 引擎在执行这个简单的 update语句时的内部流程。
+ *
  */
 public class MysqlTest {
 }
