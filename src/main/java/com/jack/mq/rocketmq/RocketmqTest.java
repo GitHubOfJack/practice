@@ -13,7 +13,30 @@ package com.jack.mq.rocketmq;
  *
  *
  * rocketmq的消费端没有真正意义的PUSH，底层是长轮训机制+监听（看着像是PUSH）
- * 之所以采用PULL是考虑服务器端消费太慢，数据堆积的问题。
+ * 之所以采用PULL是考虑服务器端消费太慢，数据堆积的问题。PULL需要自己维护Offset。
+ *
+ * rocketmq的PUSH模式的流程
+ *  消费者端
+ *  1 后台独立线程—rebalanceService根据Topic中消息队列个数和当前消费组内消费者个数进行负载均衡，
+ *      将产生的对应PullRequest实例放入阻塞队列—pullRequestQueue中
+ *  2 后台独立的线程—PullMessageService不断地从阻塞队列—pullRequestQueue
+ *      中获取PullRequest请求并通过网络通信模块发送Pull消息的RPC请求给Broker端
+ *  Broker端
+ *      1 消费者如果第一次尝试Pull消息失败（比如：Broker端没有可以消费的消息），并不立即给消费者客户端返回Response的响应，而是先hold住并且挂起请求（将请求保存至pullRequestTable本地缓存变量中）
+ *      2 然后Broker端的后台独立线程—PullRequestHoldService会从pullRequestTable本地缓存变量中不断地去取，具体的做法是查询待拉取消息的偏移量是否小于消费队列最大偏移量，如果条件成立则说明有新消息达到Broker端
+ *
+ *
+ * RocketMQ-Push模式下并发消费和顺序消费的区别
+ * 并发消费：consumer.registerMessageListener(new MessageListenerConcurrently() {}
+ *      // 消费成功
+ *     CONSUME_SUCCESS,
+ *     // 消费失败，稍后再从Broker拉取消息重新消费（并发消费（重新消费的消息由Broker复制原消息，并丢入重试队列））
+ *     RECONSUME_LATER;
+ * 顺序消费：consumer.registerMessageListener(new MessageListenerOrderly() {}
+ *      // 消费成功
+ *     SUCCESS,
+ *     // 消费失败，挂起当前队列，挂起期间，当前消息重试消费，直到消息进入死信队列(重新消费不涉及Broker)
+ *     SUSPEND_CURRENT_QUEUE_A_MOMENT;
  *
  *
  *  TOPIC:标识消息的第一级别，例如贷前消息、贷后消息、催收消息等
@@ -31,17 +54,17 @@ package com.jack.mq.rocketmq;
  *
  * 1 重复消费的解决方案： 接口做幂等校验
  * 2 消息丢失问题（ACTIVEMQ和ROCKETMQ可能还不太一样，只是给出一个大致的解决方案）：
- *  1 发送端消息丢失
- *      发送方式有同步发送、异步发送
- *      同步发送会返回SEND_OK，FLUSH_DISK_TIMEOUT，FlUSH_SLAVE_TIMEOUT，SLAVE_NOT_AVAILABLE等结果，根据结果进行相应的处理
- *      异步发送会注册一个回调函数，优点是性能高，可以把结果记录日志或者数据库，定时任务处理相关失败数据+邮件人工处理)
- *  2 MQ服务器本身消息丢失
- *      配置持久化方案（可以采用落盘+主从备份完成）
- *      设置为同步刷盘 即FlushDiskType = SYSNC_FLUSH（默认为异步刷盘方式）-损耗性能，需要根据场景来使用
- *      若有slave备份：设置为同步复制 ，即SYSNC_MASTER(默认是异步Master即ASYNC_MASTER)
- *  3 消费端消息丢失
- *      消息消费成功之后会发送CONSUME_SUCCESS给Broker代表消费成功
- *      如果消费超时、消费服务宕机等情况MQ会重试发送（默认是16次），如果重试16次不成功会进入死信队列，需要单独处理死信队列中的数据
+ *      1 发送端消息丢失
+ *          发送方式有同步发送、异步发送
+ *          同步发送会返回SEND_OK，FLUSH_DISK_TIMEOUT，FlUSH_SLAVE_TIMEOUT，SLAVE_NOT_AVAILABLE等结果，根据结果进行相应的处理
+ *          异步发送会注册一个回调函数，优点是性能高，可以把结果记录日志或者数据库，定时任务处理相关失败数据+邮件人工处理)
+ *      2 MQ服务器本身消息丢失
+ *          配置持久化方案（可以采用落盘+主从备份完成）
+ *          设置为同步刷盘 即FlushDiskType = SYSNC_FLUSH（默认为异步刷盘方式）-损耗性能，需要根据场景来使用
+ *          若有slave备份：设置为同步复制 ，即SYSNC_MASTER(默认是异步Master即ASYNC_MASTER)
+ *      3 消费端消息丢失
+ *          消息消费成功之后会发送CONSUME_SUCCESS给Broker代表消费成功
+ *          如果消费超时、消费服务宕机等情况MQ会重试发送（默认是16次），如果重试16次不成功会进入死信队列，需要单独处理死信队列中的数据
  *
  * 3 顺序消息
  *      原理是生产者根据业务需求，比如合同号，订单号之类的数据按照一定规则分片，然后按照顺序放到同一个队列中，消费者顺序消费,ROCKETMQ提供了MessageQueueSelector接口
@@ -123,6 +146,30 @@ package com.jack.mq.rocketmq;
  * 我们在写入commitlog的时候是顺序写入的，这样比随机写入的性能就会提高很多
  * 写入commitlog的时候并不是直接写入磁盘，而是先写入操作系统的PageCache
  * 最后由操作系统异步将缓存中的数据刷到磁盘
+ *
+ * 13 Push模式下并发消费和顺序消费的区别
+ *  并发消费（重新消费的消息由Broker复制原消息，并丢入重试队列）：
+ *      消费者返回ConsumeConcurrentlyStatus.RECONSUME_LATER时， Broker会创建一条与原先消息属性相同的消息，并分配新的唯一的msgId，另外存储原消息的msgId，新消息会存入到commitLog文件中，并进入重试队列，拥有一个全新的队列偏移量，延迟5s后重新消费。如果消费者仍然返回RECONSUME_LATER，那么会重复上面的操作，直到重新消费maxReconsumerTimes次，当重新消费次数超过最大次数时，进入死信队列，消息消费成功。
+ *  顺序消费（重新消费不涉及Broker）：
+ *      消费者返回ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT时，当前队列会挂起（此消息后面的消息停止消费，直到此消息完成消息重新消费的整个过程），然后此消息会在消费者的线程池中重新消费，即不需要Broker重新创建新的消息（不涉及重试队列），如果消息重新消费超过maxReconsumerTimes最大次数时，进入死信队列。当消息放入死信队列时，Broker服务器认为消息时消费成功的，继续消费该队列后续消息。
+ *
+ *  14 commitlog consumerqueue indexfile
+ *      commitlog每个文件默认1G，文件名称20位，是起始偏移量不足20位，左边补0，所有数据均存在commitlog中，消息是顺序读写
+ *      一个consumerqueue对应一个TOPIC下的一个队列，内容是消息在commitlog中的偏移量，可以理解成索引文件
+ *      读取数据需要先从队列的consumerqueue中找出offset再从commitlog中找出消息。
+ *      indexfile:如果我们需要根据消息ID查询消息，为了避免遍历commitlog，建立了indexfile
+ *
+ *  15 消息事物的原理
+ *      1 先写入一个half message到commitlog，通过更改half message的topic值，来保证这个half message并不会加入到consumerqueue中从而实现消费者无法看到。(所有的半消息都使用同一个topic)
+ *      broker内部还会维护一个op消息，用来标识事物消息状态是否确定（commit或者rollback），它会将所有没有终态的消息放入一个OP消息队列，用来做回查.
+ *      Commit相对于Rollback只是在写入Op消息前创建Half消息的索引。
+ *      2 如果消息需要回滚则写入OP消息
+ *      3 如果是COMMIT，读取出half message并设置成真正的top,然后生成一个普通消息，重新写入commitlog中(事物消息的内容会存在两份)
+ *
+ *
+ *
+ *
+ *
  * */
 public class RocketmqTest {
 }
