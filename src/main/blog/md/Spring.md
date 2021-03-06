@@ -18,6 +18,9 @@
     1.14 Event
     1.15 Environment
     1.16 Aware
+    1.17 SmartInitializingSingleton           afterSingletonsInstantiated
+    1.18 LifecycleProcessor
+    1.19 SmartLifecycle->Lifecycle            容器的生命周期、可以实现容器的优雅关闭
 
 
 2 Spring是如何解决循环依赖的
@@ -357,38 +360,38 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
 
 
 ​                
-                protected void cleanupTransactionInfo(@Nullable TransactionInfo txInfo) {
-                		if (txInfo != null) {
-                			txInfo.restoreThreadLocalStatus();
-                		}
-                	}
-               
-                commit {
-                    if (status.hasSavepoint()) {
-                        status.releaseHeldSavepoint();
-                    }
-                    else if (status.isNewTransaction()) {
-                        doCommit(status);
-                    }
-                    finally {
-                    			cleanupAfterCompletion(status);
-                    		}
-                }
-             
-            CglibAopProxy  
+​                protected void cleanupTransactionInfo(@Nullable TransactionInfo txInfo) {
+​                		if (txInfo != null) {
+​                			txInfo.restoreThreadLocalStatus();
+​                		}
+​                	}
+​               
+​                commit {
+​                    if (status.hasSavepoint()) {
+​                        status.releaseHeldSavepoint();
+​                    }
+​                    else if (status.isNewTransaction()) {
+​                        doCommit(status);
+​                    }
+​                    finally {
+​                    			cleanupAfterCompletion(status);
+​                    		}
+​                }
+​             
+​            CglibAopProxy  
 
 
 ​            
-            TransactionManager
-             TransactionStatus getTransaction(@Nullable TransactionDefinition definition)
-             void commit(TransactionStatus status)
-             void rollback(TransactionStatus status)
-             
-            AnnotationTransactionAttributeSource
-            TransactionAnnotationParser   TransactionAttribute parseTransactionAnnotation(AnnotatedElement element)
-            TransactionInterceptor   
-            TransactionStatus       savepoint
-            TransactionDefinition   7大传播属性 4种隔离级别
+​            TransactionManager
+​             TransactionStatus getTransaction(@Nullable TransactionDefinition definition)
+​             void commit(TransactionStatus status)
+​             void rollback(TransactionStatus status)
+​             
+​            AnnotationTransactionAttributeSource
+​            TransactionAnnotationParser   TransactionAttribute parseTransactionAnnotation(AnnotatedElement element)
+​            TransactionInterceptor   
+​            TransactionStatus       savepoint
+​            TransactionDefinition   7大传播属性 4种隔离级别
 
 ​             
 
@@ -463,41 +466,39 @@ Spring只能处理3情况的依赖注入，其他不能的原因如下：
 ```
 
 
-​    
 ​                        
 ​                
-​        
+```​java
 Spring注解分类
-​    @Component
-​        @Controller
-​        @Service
-​        @Repository
-​        @Configuration
-​            @Bean
-​            @Import
-​            @ComponentScan
-​            
 
-            @Profile
-            @ImportResource
-            @ComponentScans
-            @Primary
-            @Lazy
-            @PropertySource
+    加载类的方式
+        1 包扫描+注解
+          包扫描：@ComponentScans（扫描这个包下的所有类，但是只会把有如下注解的类加入到容器中）
+          注解：@Component、@Controller、@Service、@Repository、@Configuration
+    ​   2 使用@Bean注解
+            使用@Configuration+@Bean
+        3 使用@Import
+            3.1 可以直接把一个bean对象加入到容器中
+    ​       3.2 ImportSelector:返回一个类的数组
+            3.3 ImportBeanDefinitionRegistrar:手动注册bean到容器中
 
 
-​            
-            @ConfigurationProperties--springboot注解
+    属性注入的注解
+        @Autowired  默认按照类型加载，可空，可以和@Qualifier配合使用指定bean名称 spring自带的
+        @Resource   可指定类型或者名称加载 jsr-250
+        @Inject     基本与@Autowired一致，但是不能为空
 
-
-​            
-​            
+    其它注解
         @Value
-        @Autowired
-        @Resource
-        @Inject
-        @Qualifier
-
+        @ImportResource：加载XML文件
+        @PropertySource：加载Properties文件
+​       @ConfigurationProperties--springboot注解,定义一个BEAN对象信息的前缀
+        @Profile
+        @Primary
+        @Lazy
+        @EventListener:可以定义一个类去实现ApplicationListener，也可以在方法上写注解@EventListener实现监听器功能
+        @Order:可以排序，或者实现Ordered
+```
 
 ​        
 ​        
@@ -635,93 +636,93 @@ SpringApplication.run(PracticeApplication.class, args);
 
 
 ​                    
-                    getWebServerFactory()流程
-                        String[] beanNames = getBeanFactory().getBeanNamesForType(ServletWebServerFactory.class);
-                        return getBeanFactory().getBean(beanNames[0], ServletWebServerFactory.class);
-                    factory.getWebServer(getSelfInitializer())
-                        其中getSelfInitializer()会返回一个匿名内部类，该类会实现ServletContextInitializer接口，
-                        调用该匿名类的onStartup(ServletContext servletContext)时候，会调用
-                        for (ServletContextInitializer beans : getServletContextInitializerBeans()) {
-                                    beans.onStartup(servletContext);
-                        }循环IOC容器中所有的ServletContextInitializer对象，调用onStartup方法
-                    
-                        getWebServer流程
-                            1 Tomcat tomcat = new Tomcat();
-                            2 设置baseDir
-                            3 创建Context容器-engine\host\context\wrapper
-                            4 context容器中Map<ServletContainerInitializer,Set<Class<?>>>集合中添加对象-tomcatStarter，此处的TomcatStarter starter = new TomcatStarter(initializers); TomcatStarter中有个属性ServletContextInitializer[]
-                            5 调用tomcat.start
-                                startInternal()->StandardContext容器的startInternal()方法中会循环getSelfInitializer()会返回一个匿名内部类，调用onstartup方法
-                                此时会先调用TomcatStarter的onStartup方法，在该方法中调用DispatcherServletRegistrationBean的onStartup方法，该方法中会把DispatcherServlet加入到ServletContext容器中
-            10 registerListeners()
-                1 如果有加载好的ApplicationListener，则加入到ApplicationEventMulticaster
-                2 获取所有的ApplicationListener类，加入到ApplicationEventMulticaster
-                3 如果earlyApplicationEvents非空，则发布ApplicationEventMulticaster().multicastEvent()相应的事件
-            11 finishBeanFactoryInitialization()
-                1 for(beanDefinitionNames) {
-                        if(!abstract && isSingleton && !lazy) {
-                            if(isFactoryBean) {
-                                getBean(&beanName)
-                            } else {
-                                getBean(beanName)
-                            }
-                        }
-                    }
-                    2 for(beanDefinitionNames) {
-                          Object singletonInstance = getSingleton(beanName);
-                          if(SmartInitializingSingleton) {
-                            smartSingleton.afterSingletonsInstantiated();----EventListenerMethodProcessor.afterSingletonsInstantiated处理@EventListener注解，内部是把有注解的方法转换成ApplicationListener对象
-                          }
-                      }
-                 getBean流程:
-                  AbstractBeanFactory.doGetBean()
-                   1 transformedBeanName->处理factorybean类型对象名字
-                   2 getSingleton->获取单例对象,此处主要是从缓存中获取,singletonObjects,earlySingletonObjects,singletonFactorie，如果singletonFactorie中存在，则把对象从singletonFactorie删除，并加入到earlySingletonObjects对象中
-                   3 如果单例对象存在则getObjectForBeanInstance->获取真正的BEAN，处理factorybean的对象
-                   4 如果单例对象不存在   isPrototypeCurrentlyInCreation(ThreadLocal<Object> prototypesCurrentlyInCreation)->检查对象是否在创建，如果在创建则报BeanCurrentlyInCreationException
-                   5 markBeanAsCreated->把对象标记为创建中 Set<String> alreadyCreated
-                   6 如果是单例对象   
-                     6.1 getSingleton(beanName, ObjectFactory)
-                         6.1.1 beforeSingletonCreation(beanName);--检查该对象是否在创建中，singletonsCurrentlyInCreation放入到这个Set集合中
-                         6.1.2 singletonObject = singletonFactory.getObject();//调用工厂方法生成对象
-                            AbstractAutowireCapableBeanFactory.createBean()的调用流程:
-                                6.1.2.1 Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
-                                    在实例化前，如果InstantiationAwareBeanPostProcessor存在，
-                                    则调用postProcessBeforeInstantiation创建对象，  -- AOP增强器在这个位置添加
-                                    再执行所有BeanPostProcessor的postProcessAfterInitialization方法，如果有值，直接返回，流程结束。
-                                6.1.2.2 Object beanInstance = doCreateBean(beanName, mbdToUse, args);
-                                    AbstractAutowireCapableBeanFactory.doCreateBean()的调用流程:
-                                        6.1.2.2.1 BeanWrapper instanceWrapper = createBeanInstance(beanName, mbd, args);返回BeanWrapper，BEAN的封装对象
-                                        6.1.2.2.2 addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean))把BEAN加入到singletonFactories中（SmartInstantiationAwareBeanPostProcessor）
-                                        6.1.2.2.3 populateBean(beanName, mbd, instanceWrapper);
-                                                    1 执行InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation方法
-                                                    2 InstantiationAwareBeanPostProcessor.postProcessProperties  @AutoWired @Resource @Inject
-                                        6.1.2.2.4 exposedObject = initializeBean(beanName, exposedObject, mbd);
-                                                    1 invokeAwareMethods->执行实现了BeanNameAware，BeanClassLoaderAware，BeanFactoryAware接口的属性
-                                                    2 执行BeanPostProcessor处理器的postProcessBeforeInitialization方法   CommonAnnotationBeanPostProcessor.before方法可以处理@PostConstruct
-                                                    3 invokeInitMethods->
-                                                        3.1 执行实现了InitializingBean的方法
-                                                        3.2 执行指定了init_method()的方法
-                                                    4 执行BeanPostProcessor处理器的postProcessAfterInitialization  ---AOP在此生成代理对象
-                                        6.1.2.2.6 registerDisposableBeanIfNecessary(beanName, bean, mbd);
-                         6.1.3 afterSingletonCreation(beanName);--把这个beanName从singletonsCurrentlyInCreation集合中删除
-                         6.1.4 addSingleton(beanName, singletonObject);--把单例对象放入SingletonObject的Map中，并把它从earlySingletonObject的MAP和SingletonFactory的MAP中删除.
-                     6.2 通过6.1返回的对象，调用getObjectForBeanInstance，原理同上3
-                   7 如果是原型模式
-                     7.1 beforePrototypeCreation -> 在prototypesCurrentlyInCreation中加入当前的BEAN
-                     7.2 createBean->创建对象 同6.1
-                     7.3 afterPrototypeCreation-> 把prototypesCurrentlyInCreation中的BEAN删除
-                     7.4 getObjectForBeanInstance->同3
-                   8 如果是其他SCOPE
-                     同7
-            12 finishRefresh()
-                1 initLifecycleProcessor().onRefresh()--调用实现了Lifecycle接口的Bean的start()方法
-                2 publishEvent(ContextRefreshedEvent())
-        9 刷新后处理 afterRefresh()--空方法
-        10 stopWatch.stop  计时器停止
-        11 发布ApplicationStartedEvent事件
-        12 callRunners---获取容器中的ApplicationRunner对象和CommandLineRunner.class对象，调用他们的run方法--可以进行一些事件的初始化操作
-        13 发布ApplicationReadyEvent方法
+​                    getWebServerFactory()流程
+​                        String[] beanNames = getBeanFactory().getBeanNamesForType(ServletWebServerFactory.class);
+​                        return getBeanFactory().getBean(beanNames[0], ServletWebServerFactory.class);
+​                    factory.getWebServer(getSelfInitializer())
+​                        其中getSelfInitializer()会返回一个匿名内部类，该类会实现ServletContextInitializer接口，
+​                        调用该匿名类的onStartup(ServletContext servletContext)时候，会调用
+​                        for (ServletContextInitializer beans : getServletContextInitializerBeans()) {
+​                                    beans.onStartup(servletContext);
+​                        }循环IOC容器中所有的ServletContextInitializer对象，调用onStartup方法
+​                    
+​                        getWebServer流程
+​                            1 Tomcat tomcat = new Tomcat();
+​                            2 设置baseDir
+​                            3 创建Context容器-engine\host\context\wrapper
+​                            4 context容器中Map<ServletContainerInitializer,Set<Class<?>>>集合中添加对象-tomcatStarter，此处的TomcatStarter starter = new TomcatStarter(initializers); TomcatStarter中有个属性ServletContextInitializer[]
+​                            5 调用tomcat.start
+​                                startInternal()->StandardContext容器的startInternal()方法中会循环getSelfInitializer()会返回一个匿名内部类，调用onstartup方法
+​                                此时会先调用TomcatStarter的onStartup方法，在该方法中调用DispatcherServletRegistrationBean的onStartup方法，该方法中会把DispatcherServlet加入到ServletContext容器中
+​            10 registerListeners()
+​                1 如果有加载好的ApplicationListener，则加入到ApplicationEventMulticaster
+​                2 获取所有的ApplicationListener类，加入到ApplicationEventMulticaster
+​                3 如果earlyApplicationEvents非空，则发布ApplicationEventMulticaster().multicastEvent()相应的事件
+​            11 finishBeanFactoryInitialization()
+​                1 for(beanDefinitionNames) {
+​                        if(!abstract && isSingleton && !lazy) {
+​                            if(isFactoryBean) {
+​                                getBean(&beanName)
+​                            } else {
+​                                getBean(beanName)
+​                            }
+​                        }
+​                    }
+​                    2 for(beanDefinitionNames) {
+​                          Object singletonInstance = getSingleton(beanName);
+​                          if(SmartInitializingSingleton) {
+​                            smartSingleton.afterSingletonsInstantiated();----EventListenerMethodProcessor.afterSingletonsInstantiated处理@EventListener注解，内部是把有注解的方法转换成ApplicationListener对象
+​                          }
+​                      }
+​                 getBean流程:
+​                  AbstractBeanFactory.doGetBean()
+​                   1 transformedBeanName->处理factorybean类型对象名字
+​                   2 getSingleton->获取单例对象,此处主要是从缓存中获取,singletonObjects,earlySingletonObjects,singletonFactorie，如果singletonFactorie中存在，则把对象从singletonFactorie删除，并加入到earlySingletonObjects对象中
+​                   3 如果单例对象存在则getObjectForBeanInstance->获取真正的BEAN，处理factorybean的对象
+​                   4 如果单例对象不存在   isPrototypeCurrentlyInCreation(ThreadLocal<Object> prototypesCurrentlyInCreation)->检查对象是否在创建，如果在创建则报BeanCurrentlyInCreationException
+​                   5 markBeanAsCreated->把对象标记为创建中 Set<String> alreadyCreated
+​                   6 如果是单例对象   
+​                     6.1 getSingleton(beanName, ObjectFactory)
+​                         6.1.1 beforeSingletonCreation(beanName);--检查该对象是否在创建中，singletonsCurrentlyInCreation放入到这个Set集合中
+​                         6.1.2 singletonObject = singletonFactory.getObject();//调用工厂方法生成对象
+​                            AbstractAutowireCapableBeanFactory.createBean()的调用流程:
+​                                6.1.2.1 Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+​                                    在实例化前，如果InstantiationAwareBeanPostProcessor存在，
+​                                    则调用postProcessBeforeInstantiation创建对象，  -- AOP增强器在这个位置添加
+​                                    再执行所有BeanPostProcessor的postProcessAfterInitialization方法，如果有值，直接返回，流程结束。
+​                                6.1.2.2 Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+​                                    AbstractAutowireCapableBeanFactory.doCreateBean()的调用流程:
+​                                        6.1.2.2.1 BeanWrapper instanceWrapper = createBeanInstance(beanName, mbd, args);返回BeanWrapper，BEAN的封装对象
+​                                        6.1.2.2.2 addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean))把BEAN加入到singletonFactories中（SmartInstantiationAwareBeanPostProcessor）
+​                                        6.1.2.2.3 populateBean(beanName, mbd, instanceWrapper);
+​                                                    1 执行InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation方法
+​                                                    2 InstantiationAwareBeanPostProcessor.postProcessProperties  @AutoWired @Resource @Inject
+​                                        6.1.2.2.4 exposedObject = initializeBean(beanName, exposedObject, mbd);
+​                                                    1 invokeAwareMethods->执行实现了BeanNameAware，BeanClassLoaderAware，BeanFactoryAware接口的属性
+​                                                    2 执行BeanPostProcessor处理器的postProcessBeforeInitialization方法   CommonAnnotationBeanPostProcessor.before方法可以处理@PostConstruct
+​                                                    3 invokeInitMethods->
+​                                                        3.1 执行实现了InitializingBean的方法
+​                                                        3.2 执行指定了init_method()的方法
+​                                                    4 执行BeanPostProcessor处理器的postProcessAfterInitialization  ---AOP在此生成代理对象
+​                                        6.1.2.2.6 registerDisposableBeanIfNecessary(beanName, bean, mbd);
+​                         6.1.3 afterSingletonCreation(beanName);--把这个beanName从singletonsCurrentlyInCreation集合中删除
+​                         6.1.4 addSingleton(beanName, singletonObject);--把单例对象放入SingletonObject的Map中，并把它从earlySingletonObject的MAP和SingletonFactory的MAP中删除.
+​                     6.2 通过6.1返回的对象，调用getObjectForBeanInstance，原理同上3
+​                   7 如果是原型模式
+​                     7.1 beforePrototypeCreation -> 在prototypesCurrentlyInCreation中加入当前的BEAN
+​                     7.2 createBean->创建对象 同6.1
+​                     7.3 afterPrototypeCreation-> 把prototypesCurrentlyInCreation中的BEAN删除
+​                     7.4 getObjectForBeanInstance->同3
+​                   8 如果是其他SCOPE
+​                     同7
+​            12 finishRefresh()
+​                1 initLifecycleProcessor().onRefresh()--调用实现了Lifecycle接口的Bean的start()方法
+​                2 publishEvent(ContextRefreshedEvent())
+​        9 刷新后处理 afterRefresh()--空方法
+​        10 stopWatch.stop  计时器停止
+​        11 发布ApplicationStartedEvent事件
+​        12 callRunners---获取容器中的ApplicationRunner对象和CommandLineRunner.class对象，调用他们的run方法--可以进行一些事件的初始化操作
+​        13 发布ApplicationReadyEvent方法
 
 
 ​            
@@ -729,48 +730,48 @@ SpringApplication.run(PracticeApplication.class, args);
 ConfigurationClassPostProcessor工作流程
 ConfigurationClassPostProcessor.postProcessBeanDefinitionRegistry();
 ​        
-        	1 获取所有的BeanDefinition   registry.getBeanDefinitionNames()
-        
-        	2 循环所有的BeanDefinition   ConfigurationClassUtils.checkConfigurationClassCandidate 找出加了@Configuration注解的类（只会有默认启动的类和@SpringBootApplication的类，此时只能获取@SpringBootApplication的类）
-        	checkConfigurationClassCandidate()会判断一个是否是一个配置类,并为BeanDefinition设置属性为lite或者full。
-            在这儿为BeanDefinition设置lite和full属性值是为了后面在使用
-            如果有@Configuration注解&&proxyBeanMethods=true则设置beanDefinition中的configurationClass的Attribute=full
-            如果@Component、@ComponentScan、@Import、@ImportResource、@Bean则设置为lite
-        
-        	3 ConfigurationClassParser.parse(2中的配置类)
-        		3.1 doProcessConfigurationClass()
-        			3.1.1 如果有@Component&&如果有内部类&&内部类是@Configuartion类，则执行3的流程
-        			3.1.2 是否有@PropertySSource注解 
-        				如果有则把相应的属性加入到Environment中
-        			3.1.3 是否有@ComponentScan注解
-        				3.1.3.1 ComponentScanAnnotationParser.parse()解析@SpringBootApplication注解的类，获取相关的BeanDefinition信息
-        					3.1.3.1.1 此处如果没有配置扫描的包路径，默认取@SpringBootApplication类所在的包路径
-        					3.1.3.1.2 ClassPathBeanDefinitionScanner.doScan(),扫描指定的路径
-        						 3.1.3.1.2.1 获取指定路径下的所有包含@Component的定义信息
-        						 	3.1.3.1.2.1.1 扫描指定路径下的所有类
-        						 	3.1.3.1.2.1.2 获取其中有@Component注解的类
-        						 3.1.3.1.2.2 注册上一步获取的BeanDefinition
-        				3.1.3.2 循环上一步获取的BeanDefinition信息，重复2、3、4、5的流程
-        			3.1.4 处理@Import注解
-        					3.1.4.1 如果是ImportSelector，则调用selectImports，得到相应的Bean,转换成SourceClassses,继续调用3.1.4进行@Import的解析
-        					3.1.4.2 如果是ImportBeanDefinitionRegistrar，则把key=注册器 value=注解元信息加入到configclasss的map中。 Map<ImportBeanDefinitionRegistrar, AnnotationMetadata>
-        					3.1.4.3 如果不是上述两种，则当成@Configuration类处理重复3的流程
-        			3.1.5 处理@ImportResource注解
-        					如果存在则加入到configClass的Map<String, Class<? extends BeanDefinitionReader>>中
-        			3.1.6 处理@Bean方法
-        					3.1.6.1 找出asm可以处理的@Bean方法
-        					3.1.6.2 把它加入到configClass的Set<BeanMethod>中
-        			3.1.7 处理接口中的默认方法
-        					3.1.7.1 获取所有的接口
-        					3.1.7.2 找出接口中所有@Bean注解的方法
-        					3.1.7.3 如果@Bean的方法不是abstract方法，则加入到configclass的Set<BeanMethod>中
-        			3.1.8 处理父类
-        					如果有父类，并且父类不是java开头，并且不是已经知道的父类，则把该父类当成sourceClass，继续3的流程
-        			3.1.9 流程处理完，返回null
-        		3.2 把解析完的configClass加入Map中
-        
-        	4 parser.getConfigurationClasses()，获取所有3.2中的Map的key值。
-        
+​        	1 获取所有的BeanDefinition   registry.getBeanDefinitionNames()
+​        
+​        	2 循环所有的BeanDefinition   ConfigurationClassUtils.checkConfigurationClassCandidate 找出加了@Configuration注解的类（只会有默认启动的类和@SpringBootApplication的类，此时只能获取@SpringBootApplication的类）
+​        	checkConfigurationClassCandidate()会判断一个是否是一个配置类,并为BeanDefinition设置属性为lite或者full。
+​            在这儿为BeanDefinition设置lite和full属性值是为了后面在使用
+​            如果有@Configuration注解&&proxyBeanMethods=true则设置beanDefinition中的configurationClass的Attribute=full
+​            如果@Component、@ComponentScan、@Import、@ImportResource、@Bean则设置为lite
+​        
+​        	3 ConfigurationClassParser.parse(2中的配置类)
+​        		3.1 doProcessConfigurationClass()
+​        			3.1.1 如果有@Component&&如果有内部类&&内部类是@Configuartion类，则执行3的流程
+​        			3.1.2 是否有@PropertySSource注解 
+​        				如果有则把相应的属性加入到Environment中
+​        			3.1.3 是否有@ComponentScan注解
+​        				3.1.3.1 ComponentScanAnnotationParser.parse()解析@SpringBootApplication注解的类，获取相关的BeanDefinition信息
+​        					3.1.3.1.1 此处如果没有配置扫描的包路径，默认取@SpringBootApplication类所在的包路径
+​        					3.1.3.1.2 ClassPathBeanDefinitionScanner.doScan(),扫描指定的路径
+​        						 3.1.3.1.2.1 获取指定路径下的所有包含@Component的定义信息
+​        						 	3.1.3.1.2.1.1 扫描指定路径下的所有类
+​        						 	3.1.3.1.2.1.2 获取其中有@Component注解的类
+​        						 3.1.3.1.2.2 注册上一步获取的BeanDefinition
+​        				3.1.3.2 循环上一步获取的BeanDefinition信息，重复2、3、4、5的流程
+​        			3.1.4 处理@Import注解
+​        					3.1.4.1 如果是ImportSelector，则调用selectImports，得到相应的Bean,转换成SourceClassses,继续调用3.1.4进行@Import的解析
+​        					3.1.4.2 如果是ImportBeanDefinitionRegistrar，则把key=注册器 value=注解元信息加入到configclasss的map中。 Map<ImportBeanDefinitionRegistrar, AnnotationMetadata>
+​        					3.1.4.3 如果不是上述两种，则当成@Configuration类处理重复3的流程
+​        			3.1.5 处理@ImportResource注解
+​        					如果存在则加入到configClass的Map<String, Class<? extends BeanDefinitionReader>>中
+​        			3.1.6 处理@Bean方法
+​        					3.1.6.1 找出asm可以处理的@Bean方法
+​        					3.1.6.2 把它加入到configClass的Set<BeanMethod>中
+​        			3.1.7 处理接口中的默认方法
+​        					3.1.7.1 获取所有的接口
+​        					3.1.7.2 找出接口中所有@Bean注解的方法
+​        					3.1.7.3 如果@Bean的方法不是abstract方法，则加入到configclass的Set<BeanMethod>中
+​        			3.1.8 处理父类
+​        					如果有父类，并且父类不是java开头，并且不是已经知道的父类，则把该父类当成sourceClass，继续3的流程
+​        			3.1.9 流程处理完，返回null
+​        		3.2 把解析完的configClass加入Map中
+​        
+​        	4 parser.getConfigurationClasses()，获取所有3.2中的Map的key值。
+​        
         	5 ConfigurationClassBeanDefinitionReader.loadBeanDefinitions(configClassess) 加载所有的配置类
         		5.1 如果是@Import          configClass.isImported()
         			new BeanDefinition()对象，通过解析@Lazy、@Primary、@DependsOn、@Role、@Description注解给Beandefinition对象赋属性值。
@@ -808,3 +809,13 @@ AutoConfigurationImportSelector implements ImportSelector(selectImports)
     }
 ```
 
+```java
+* Tomcat启动流程
+* 在IOC的onRefresh方法中启动的
+* 核心思想是把DispatcherServlet放入到Tomcat容器中
+* Tomcat容器启动的时候会启动ServletContainerInitializer.onStartup方法
+* 有一个TomcatStarter类实现了ServletContainerInitializer，并且TomcatStarter中有一个ServletContextInitializer数组
+* TomcatStarter.onStartup方法会遍历数组中的ServletContextInitializer调用onStartup方法
+* 有一个DispatcherServletRegistrationBean的对象实现了ServletContextInitializer,
+* 在它的onstartup方法中把dispatcherServlet放入到了tomcat容器中
+```
