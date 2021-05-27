@@ -384,6 +384,45 @@ package com.jack.redis;
  *     前后端异步处理MQ
  *     可以使用REDIS操作，后同步到数据库
  *
+ *     redis为什么性能比较高：
+ *      1 内存操作
+ *      2 单线程（io多路复用，多路是指客户端socket连接是多个，复用是指一个线程处理多个连接，单线程省去了线程切换，并且没有并发安全的问题，而且redis是内存操作，他的压力主要是io压力，一个线程完全能够处理所有的任务）
+ *      3 底层数据结构经过了优化（为5种不同的类型，设计了不同的底层存储结构，方便快速的存取，比如跳表、ziplist、quicklist、sds、hash等）
+ *      4 本地方法（比如取list中某个位置上的值，memcache只能把整个list字符串返回，而redis可以只返回想要的那个值）
+ *
  */
 public class RedisOpt {
+    public static volatile boolean refresh = false;
+
+    public static void main(String[] args) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i=0; i<Integer.MAX_VALUE; i++) {
+                    System.out.println(i);
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    if (refresh) {
+                        i = -1;
+                        refresh = false;
+                    }
+                }
+            }
+        }).start();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                refresh = true;
+            }
+        }).start();
+
+    }
 }

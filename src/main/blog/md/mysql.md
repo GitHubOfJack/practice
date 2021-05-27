@@ -358,3 +358,27 @@ SELECT操作返回结果的可见性是由以下规则决定的：
 - DATA_TRX_ID 字段记录了数据的创建和删除时间，这个时间指的是对数据进行操作的事务的id
 - DATA_ROLL_PTR 指向当前数据的undo log记录，回滚数据就是通过这个指针
 - DELETE BIT位用于标识该记录是否被删除，这里的不是真正的删除数据，而是标志出来的删除。真正意义的删除是在mysql进行数据的GC，清理历史版本数据的时候。
+
+```java
+* page页的内部结构
+* FileHeader
+* PageHeader
+* 最大&最小伪记录（比该页中任何主键值都小的值和最大的值）
+* UserRecords
+* FreeSpace
+* PageDirectory(二分查找的字典记录)
+* FileTrailer
+*
+*
+* compact格式下的行记录
+* 变长字段的长度列表（非空，逆序）
+* null标志位（bitmap,bitmap,逆序）
+* 记录头信息（删除标示，下一个记录的指针）
+* db_rowid
+* db_trx_id
+* db_roll_ptr（undo-log中的记录）
+* 列数据1
+* 列数据2
+* ...
+* 列数据n
+```

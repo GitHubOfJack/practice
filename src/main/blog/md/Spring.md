@@ -772,23 +772,23 @@ ConfigurationClassPostProcessor.postProcessBeanDefinitionRegistry();
 ​        
 ​        	4 parser.getConfigurationClasses()，获取所有3.2中的Map的key值。
 ​        
-        	5 ConfigurationClassBeanDefinitionReader.loadBeanDefinitions(configClassess) 加载所有的配置类
-        		5.1 如果是@Import          configClass.isImported()
-        			new BeanDefinition()对象，通过解析@Lazy、@Primary、@DependsOn、@Role、@Description注解给Beandefinition对象赋属性值。
-        			然后把该BeanDefinition注册到容器中
-        		5.2 如果有@Bean注解         configClass.getBeanMethods()---如果一个配置类上有多个@Bean方法，则生成多个BeanDefinition
-        			new BeanDefinition()对象（该对象试试@Bean注解所在类的对象定义，不是@Bean返回对象的对象定义），设置
-        			beanDef.setFactoryBeanName(configClass.getBeanName());
-        			beanDef.setUniqueFactoryMethodName(methodName)这两个属性。
-        			通过解析@Lazy、@Primary、@DependsOn、@Role、@Description注解给Beandefinition对象赋属性值。
-        			再解析@Bean注解的属性给BeanDefinition属性赋值。
-        			解析@Scope给对象赋值
-        			然后把该BeanDefinition注册到容器中
-        		5.3 如果有@ImportSource注解  configClass.getImportedResources()
-        			xml文件解析
-        		5.4 如果有BeanDefinitionRegistry configClass.getImportBeanDefinitionRegistrars()
-        			执行所有的BeanDefinitionRegistry.registryBeanDefinition方法注册BeanDefinition
-        
+​        	5 ConfigurationClassBeanDefinitionReader.loadBeanDefinitions(configClassess) 加载所有的配置类
+​        		5.1 如果是@Import          configClass.isImported()
+​        			new BeanDefinition()对象，通过解析@Lazy、@Primary、@DependsOn、@Role、@Description注解给Beandefinition对象赋属性值。
+​        			然后把该BeanDefinition注册到容器中
+​        		5.2 如果有@Bean注解         configClass.getBeanMethods()---如果一个配置类上有多个@Bean方法，则生成多个BeanDefinition
+​        			new BeanDefinition()对象（该对象试试@Bean注解所在类的对象定义，不是@Bean返回对象的对象定义），设置
+​        			beanDef.setFactoryBeanName(configClass.getBeanName());
+​        			beanDef.setUniqueFactoryMethodName(methodName)这两个属性。
+​        			通过解析@Lazy、@Primary、@DependsOn、@Role、@Description注解给Beandefinition对象赋属性值。
+​        			再解析@Bean注解的属性给BeanDefinition属性赋值。
+​        			解析@Scope给对象赋值
+​        			然后把该BeanDefinition注册到容器中
+​        		5.3 如果有@ImportSource注解  configClass.getImportedResources()
+​        			xml文件解析
+​        		5.4 如果有BeanDefinitionRegistry configClass.getImportBeanDefinitionRegistrars()
+​        			执行所有的BeanDefinitionRegistry.registryBeanDefinition方法注册BeanDefinition
+​        
         	6 如果5解析之后又产生了新的类，则重复执行2、3、4、5的动作
         	
     postProcessorBeanFactory
@@ -818,4 +818,13 @@ AutoConfigurationImportSelector implements ImportSelector(selectImports)
 * TomcatStarter.onStartup方法会遍历数组中的ServletContextInitializer调用onStartup方法
 * 有一个DispatcherServletRegistrationBean的对象实现了ServletContextInitializer,
 * 在它的onstartup方法中把dispatcherServlet放入到了tomcat容器中
+```
+
+```java
+* spring boot的优点
+* 1 简化了xml配置
+* 2 统一了核心jar包的版本控制
+* 3 提供了各种封装好的插件（mysql\redis\mq等等）
+* 4 自动化的配置enableAutoConfig
+* 5 各种监听机制和监听器，可以在不同的阶段对容器进行增强
 ```

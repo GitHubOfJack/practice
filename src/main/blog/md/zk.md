@@ -133,3 +133,27 @@ zookeeper 的 leader 服务器再运行期间定时进行会话超时检查，�
 ​	set path data [version]
 
 ​	delete path [version]
+
+
+
+一致性分为：强一致性（线形一致性）、顺序一致（zk是顺序一致性协议）、最终一致性
+
+分布式一致性协议：
+
+强一致性协议：paxos\zab（zookeeper使用）\raft协议（rocketmq主从同步使用）--整体都是采用二阶段-过半确认的机制。其中zab协议和raft协议的区别是：raft的心跳是leader向follower发送的，zab的心跳是follower向leader发送的
+
+弱一致性协议:	gossip协议（redis集群使用）-节点不分leader和follower，节点之间角色都是一样的，节点会通过gossip协议把自己的数据传播出去，但是是选择几个节点传播，不是向所有节点传播，最后达到最终一致性协议。
+
+eureka集群使用的是:replication协议
+
+
+
+数据库和缓存不一致的问题：
+
+前提条件是：业务上必须要能接受数据不一致带来的问题，只是数据不一致的时间需要尽量缩短
+
+1 双删策略-第二次删除要考虑数据延迟问题，还有就是删除失败的问题（删除失败要加上缓存失效时间-邮件预警等机制）
+
+2 读写串行的策略
+
+3 异步刷新缓存策略-通过rocketmq、binlog等异步刷新

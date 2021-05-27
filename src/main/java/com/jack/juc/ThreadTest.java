@@ -24,12 +24,15 @@ import java.util.concurrent.*;
  *  Callable {V call() throws Exception;}
  *
  *  callable方法有返回值，可以抛出异常
+ *  call可以通过线程池submit方法执行
+ *  也可以通过FutureTask类当成Runnable执行
  *
- *  Future接口有--->FutureTask类（即实现了Runnable接口又实现了Callable接口）
+ *  Future接口有--->FutureTask类（实现了Runnable接口,同时还有一个Callable属性，可在构造方法中指定）
  *  isDone方法
  *  cancel方法
  *  get方法
  *  get超时方法
+ *
  *
  *
  *

@@ -179,6 +179,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class GCTest {
     private static final int _1M = 1024*1024;
@@ -196,6 +198,14 @@ public class GCTest {
         System.out.println(gcTest1);
         /*Constructor constructor = new Constructor<GCTest>();
         constructor.newInstance();*/
+        ExecutorService pool = Executors.newFixedThreadPool(1);
+        pool.execute(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("what");
+            }
+        });
+
     }
 
     public static void doTest1() {

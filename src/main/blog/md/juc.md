@@ -545,7 +545,7 @@ final boolean nonfairTryAcquire(int acquires) {
     else if (current == getExclusiveOwnerThread()) {
         int nextc = c + acquires;
         if (nextc < 0) // overflow
-            throw new Error("Maximum lock count exceeded");
+            throw new Error("Maximum lock count exceeded"); 
         setState(nextc);
         return true;
     }
@@ -1271,4 +1271,15 @@ private void reportInterruptAfterWait(int interruptMode)
     else if (interruptMode == REINTERRUPT)
         selfInterrupt();
 }
+```
+
+```java
+* 死锁：
+*  线程1持有a锁，尝试获取b锁
+*  线程2持有b锁，尝试获取a锁
+*
+* 解决死锁的方式：
+*  1 保持加锁的顺序是一样的，1和2两个线程都是按照先获取a再获取b
+*  2 设置锁超时时间
+*  3 死锁检测机制，例如通过map记录每个线程持有的锁，通过map就可以检测死锁，如果检测到死锁，释放相应的锁即可。
 ```

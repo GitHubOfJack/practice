@@ -12,6 +12,8 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.annotation.PostConstruct;
+
 /**
  * 给容器中注册组件；
  *    1,包扫描+组件标注注解（@Controller/@Service/@Repository/@Component）[自己写的类]
@@ -31,6 +33,14 @@ import org.springframework.web.bind.annotation.RestController;
  * TomcatStarter.onStartup方法会遍历数组中的ServletContextInitializer调用onStartup方法
  * 有一个DispatcherServletRegistrationBean的对象实现了ServletContextInitializer,
  * 在它的onstartup方法中把dispatcherServlet放入到了tomcat容器中
+ *
+ *
+ * spring boot的优点
+ * 1 简化了xml配置
+ * 2 统一了核心jar包的版本控制
+ * 3 提供了各种封装好的插件（mysql\redis\mq等等）
+ * 4 自动化的配置enableAutoConfig
+ * 5 各种监听机制和监听器，可以在不同的阶段对容器进行增强
  *
  *
  *

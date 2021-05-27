@@ -233,6 +233,31 @@ package com.jack.mysql;
  * redo log 是物理日志，记录的是“在某个数据页上做了什么修改”；binlog 是逻辑日志，记录的是这个语句的原始逻辑，比如“给 ID=2 这一行的 c 字段加 1 ”。
  * redo log 是循环写的，空间固定会用完；binlog 是可以追加写入的。“追加写”是指binlog 文件写到一定大小后会切换到下一个，并不会覆盖以前的日志。有了对这两个日志的概念性理解，我们再来看执行器和 InnoDB 引擎在执行这个简单的 update语句时的内部流程。
  *
+ *
+ *
+ * page页的内部结构
+ * FileHeader
+ * PageHeader
+ * 最大&最小伪记录（比该页中任何主键值都小的值和最大的值）
+ * UserRecords
+ * FreeSpace
+ * PageDirectory(二分查找的字典记录)
+ * FileTrailer
+ *
+ *
+ * compact格式下的行记录
+ * 变长字段的长度列表（非空，逆序）
+ * null标志位（bitmap,bitmap,逆序）
+ * 记录头信息（删除标示，下一个记录的指针）
+ * db_rowid
+ * db_trx_id
+ * db_roll_ptr（undo-log中的记录）
+ * 列数据1
+ * 列数据2
+ * ...
+ * 列数据n
+ *
+ *
  */
 public class MysqlTest {
 }
